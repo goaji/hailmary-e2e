@@ -55,6 +55,65 @@ test.describe("news index", () => {
   });
 });
 
+test.describe("news index view toggle", () => {
+  test("toggles grid/list layout, persists across reload, and is keyboard-navigable", async ({
+    page,
+  }) => {
+    const gridRadio = page.getByRole("radio", { name: ro.newsIndex.gridView });
+    const listRadio = page.getByRole("radio", { name: ro.newsIndex.listView });
+    const headings = page.getByRole("heading", { level: 2 });
+
+    await test.step("defaults to grid view, cards laid out side by side", async () => {
+      await page.goto("/ro/stiri");
+      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
+      await expect(listRadio).toHaveAttribute("aria-checked", "false");
+
+      const first = await headings.nth(0).boundingBox();
+      const second = await headings.nth(1).boundingBox();
+      expect(Math.abs((first?.x ?? 0) - (second?.x ?? 0))).toBeGreaterThan(10);
+    });
+
+    await test.step("clicking 'Listă' re-flows cards into a single stacked column", async () => {
+      await listRadio.click();
+      await expect(listRadio).toHaveAttribute("aria-checked", "true");
+      await expect(gridRadio).toHaveAttribute("aria-checked", "false");
+
+      const first = await headings.nth(0).boundingBox();
+      const second = await headings.nth(1).boundingBox();
+      expect(Math.abs((first?.x ?? 0) - (second?.x ?? 0))).toBeLessThan(5);
+      expect(second?.y ?? 0).toBeGreaterThan(first?.y ?? 0);
+    });
+
+    await test.step("reload rehydrates the persisted view with no flash of the default", async () => {
+      // No page.waitForTimeout() before this assertion: if the persisted
+      // view flashed grid before applying list, this would catch it.
+      await page.reload();
+      await expect(listRadio).toHaveAttribute("aria-checked", "true");
+    });
+
+    await test.step("ArrowLeft moves focus and selection together, back to grid", async () => {
+      await listRadio.focus();
+      await page.keyboard.press("ArrowLeft");
+
+      await expect(gridRadio).toBeFocused();
+      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
+      await expect(listRadio).toHaveAttribute("aria-checked", "false");
+    });
+  });
+
+  test("axe clean on /stiri with list view active", async ({ page }) => {
+    await page.goto("/ro/stiri");
+    await page.getByRole("radio", { name: ro.newsIndex.listView }).click();
+    await expect(page.getByRole("radio", { name: ro.newsIndex.listView })).toHaveAttribute(
+      "aria-checked",
+      "true",
+    );
+
+    const results = await new AxeBuilder({ page }).analyze();
+    expect(results.violations).toEqual([]);
+  });
+});
+
 test.describe("news index accessibility across team accents", () => {
   for (const slug of PICKER_TEAMS) {
     const team = getTeam(slug);
@@ -87,6 +146,23 @@ test.describe("news index visual regression", () => {
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
       await expect(page).toHaveScreenshot(`news-index-${viewport.label}.png`, {
+        fullPage: true,
+      });
+    });
+
+    test(`list view matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
+      await page.setViewportSize({ width: viewport.width, height: viewport.height });
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      await page.goto("/ro/stiri");
+      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+
+      await page.getByRole("radio", { name: ro.newsIndex.listView }).click();
+      await expect(page.getByRole("radio", { name: ro.newsIndex.listView })).toHaveAttribute(
+        "aria-checked",
+        "true",
+      );
+
+      await expect(page).toHaveScreenshot(`news-index-list-${viewport.label}.png`, {
         fullPage: true,
       });
     });
