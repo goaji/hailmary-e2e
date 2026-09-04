@@ -1,0 +1,21 @@
+{
+  "name": "hailmary-e2e",
+  "version": "0.1.0",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "test:e2e": "playwright test",
+    "test:smoke": "playwright test --config=playwright.smoke.config.ts"
+  },
+  "dependencies": {
+    "@hailmary/shared": "github:goaji/hailmary-shared#v1.1.1"
+  },
+  "devDependencies": {
+    "@axe-core/playwright": "^4.13.0",
+    "@playwright/test": "^1.62.1",
+    "@types/node": "^20",
+    "typescript": "^5"
+  }
+}
