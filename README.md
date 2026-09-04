@@ -12,11 +12,19 @@ app; nothing here catches drift automatically.
 ## Running
 
 This suite has no local app to spin up — both configs point at a
-deployed URL.
+deployed URL. `schedule.spec.ts` and `news-index.spec.ts` also need
+`E2E_TEST_SECRET` (matching the target's `E2E_TEST_SECRET` env var) to
+seed/read fixtures via `hailmary`'s `/api/test/*` routes, and the cron
+route tests in `schedule.spec.ts` need `CRON_SECRET` — both skip
+themselves if unset, except the fixture-dependent tests, which will fail
+outright without `E2E_TEST_SECRET`.
 
 ```bash
 # Full suite, against a deployed preview (e.g. a Vercel PR preview)
-E2E_BASE_URL=https://your-preview-url.vercel.app npm run test:e2e
+E2E_BASE_URL=http://localhost:3000 \
+E2E_TEST_SECRET=... \
+CRON_SECRET=... \
+npm run test:e2e
 
 # Smoke suite, against production by default
 npm run test:smoke
