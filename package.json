@@ -10,7 +10,7 @@
     "test:smoke": "playwright test --config=playwright.smoke.config.ts"
   },
   "dependencies": {
-    "@hailmary/shared": "github:goaji/hailmary-shared#v1.1.2"
+    "@hailmary/shared": "github:goaji/hailmary-shared#v1.12.5"
   },
   "devDependencies": {
     "@axe-core/playwright": "^4.13.0",

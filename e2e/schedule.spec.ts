@@ -135,6 +135,15 @@ test.describe("week selector and table structure", () => {
     await expect(page.getByText("Chiefs")).toBeVisible();
   });
 
+  test("page has a single h1 naming the current week", async ({ page }) => {
+    await page.goto("/ro/program");
+
+    await expect(
+      page.getByRole("heading", { level: 1, name: ro.schedulePage.titleWithWeek.replace("{week}", "2") }),
+    ).toBeVisible();
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+  });
+
   test("table has a caption naming the week and th scope=col headers", async ({ page }) => {
     await page.goto("/ro/program");
 
