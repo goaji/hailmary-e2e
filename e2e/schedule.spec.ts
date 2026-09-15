@@ -355,31 +355,37 @@ test.describe("cron route", () => {
   // failed when it's absent, since there's nothing "correct" to send.
   const secret = process.env.CRON_SECRET;
 
-  test("correct secret is accepted with 200", async ({ request }) => {
-    test.skip(!secret, "CRON_SECRET is not set in this environment");
-    const response = await request.get("/api/cron/sync-scores", {
-      headers: { "X-Cron-Secret": secret! },
+  test.describe("authenticated", () => {
+    // Each call runs a real sync — don't leave its games in the store.
+    test.afterEach(async () => {
+      if (secret) {
+        await clearStore();
+      }
     });
-    expect(response.status()).toBe(200);
-  });
 
-  test("two concurrent authenticated calls leave the store as valid JSON", async ({ request }) => {
-    test.skip(!secret, "CRON_SECRET is not set in this environment");
+    test("correct secret is accepted with 200", async ({ request }) => {
+      test.skip(!secret, "CRON_SECRET is not set in this environment");
+      const response = await request.get("/api/cron/sync-scores", {
+        headers: { "X-Cron-Secret": secret! },
+      });
+      expect(response.status()).toBe(200);
+    });
 
-    await Promise.all([
-      request.get("/api/cron/sync-scores", { headers: { "X-Cron-Secret": secret! } }),
-      request.get("/api/cron/sync-scores", { headers: { "X-Cron-Secret": secret! } }),
-    ]);
+    test("two concurrent calls leave the store as valid JSON", async ({ request }) => {
+      test.skip(!secret, "CRON_SECRET is not set in this environment");
 
-    // No shared filesystem with the deployed target to read the store
-    // file directly, so this checks the store through /api/scores instead
-    // — a weaker guarantee than the original (readScores() swallows a
-    // corrupt file into an empty store rather than surfacing it), but
-    // still catches the HTTP layer serving anything malformed after two
-    // concurrent writes.
-    const response = await request.get("/api/scores");
-    expect(response.status()).toBe(200);
-    const body = await response.json(); // throws if the body isn't valid JSON
-    expect(body).toHaveProperty("games");
+      await Promise.all([
+        request.get("/api/cron/sync-scores", { headers: { "X-Cron-Secret": secret! } }),
+        request.get("/api/cron/sync-scores", { headers: { "X-Cron-Secret": secret! } }),
+      ]);
+
+      // No shared filesystem with the deployed target, so the store is read
+      // through /api/scores — weaker (readScores() swallows a corrupt file
+      // into an empty store), but still catches malformed HTTP output.
+      const response = await request.get("/api/scores");
+      expect(response.status()).toBe(200);
+      const body = await response.json(); // throws if the body isn't valid JSON
+      expect(body).toHaveProperty("games");
+    });
   });
 });
