@@ -28,6 +28,16 @@ test.describe("news index", () => {
     const titles = await page.getByRole("heading", { level: 2 }).allTextContents();
     expect(titles).toHaveLength(RO_ARTICLE_COUNT);
     expect(new Set(titles).size).toBe(titles.length); // no duplicate cards
+
+    // Newest first, compared as timestamps: publishedAt mixes date-only
+    // ("2026-09-09") and full ISO values, matching sortByPublishedAtDesc.
+    const publishedAt = await page
+      .getByRole("article")
+      .getByRole("time")
+      .evaluateAll((els) => els.map((el) => Date.parse(el.getAttribute("datetime") ?? "")));
+    expect(publishedAt).toHaveLength(titles.length);
+    expect(publishedAt).not.toContain(NaN);
+    expect(publishedAt).toEqual([...publishedAt].sort((a, b) => b - a));
   });
 
   test("nav 'Știri' link points at /stiri and reads active there and on an article page", async ({
