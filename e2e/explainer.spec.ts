@@ -115,21 +115,29 @@ test.describe("hover tooltip", () => {
     // plus the panel's content), so it has no role — its visible text is the handle.
     const tooltip = trigger.getByText(QUARTERBACK_SHORT);
 
-    await test.step("not visible immediately on hover", async () => {
-      await trigger.hover();
-      await page.waitForTimeout(150); // well under the ~300ms delay
+    await test.step("hidden at rest, and hides with no delay", async () => {
       await expect(tooltip).toBeHidden();
+      await expect(tooltip).toHaveCSS("transition-delay", "0s, 0s");
     });
 
-    await test.step("visible once the delay has passed", async () => {
-      await expect(tooltip).toBeVisible({ timeout: 600 });
+    await test.step("hover delays the reveal, then shows it", async () => {
+      await trigger.hover();
+      // The ~300ms delay is CSS, not a JS timer — read it, don't wait it out.
+      await expect(tooltip).toHaveCSS("transition-delay", "0.3s, 0.3s");
+      await expect(tooltip).toBeVisible();
+    });
+
+    await test.step("hides immediately on mouse-out", async () => {
+      await page.mouse.move(0, 0); // clear hover
+      await expect(tooltip).toBeHidden();
+      await expect(tooltip).toHaveCSS("transition-delay", "0s, 0s");
     });
 
     await test.step("never appears on keyboard focus", async () => {
-      await page.mouse.move(0, 0); // clear hover
       await trigger.focus();
-      await page.waitForTimeout(400);
       await expect(tooltip).toBeHidden();
+      // Resting delay: no :focus rule reveals it, delayed or not.
+      await expect(tooltip).toHaveCSS("transition-delay", "0s, 0s");
     });
   });
 });

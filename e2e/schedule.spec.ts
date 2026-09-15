@@ -197,22 +197,66 @@ test.describe("week selector and table structure", () => {
   });
 });
 
-test.describe("all-finals page issues no polling requests", () => {
-  test.beforeEach(() => writeStore([FINAL_GAME_A, FINAL_GAME_B]));
+// useLiveScores polls /api/scores while the latest payload has a live game.
+// page.clock, not real time, so a changed interval actually fails these.
+test.describe("live score polling", () => {
+  const POLL_INTERVAL_MS = 15_000;
+
   test.afterEach(() => clearStore());
 
-  test("zero requests to /api/scores after load", async ({ page }) => {
-    const scoreRequests: string[] = [];
+  function trackScoreRequests(page: Page) {
+    const requests: string[] = [];
     page.on("request", (req) => {
       if (req.url().includes("/api/scores")) {
-        scoreRequests.push(req.url());
+        requests.push(req.url());
       }
     });
+    return requests;
+  }
 
+  // SWR schedules the next timer only once the previous response resolves,
+  // which races a fixed advance — so step the clock until the request lands.
+  async function advanceUntilRequestCount(page: Page, requests: string[], expected: number) {
+    await expect
+      .poll(
+        async () => {
+          await page.clock.runFor(2_000);
+          return requests.length;
+        },
+        { timeout: 30_000 }, // 2s steps outlast the default 5s budget
+      )
+      .toBe(expected);
+  }
+
+  test("a live game keeps polling every 15s", async ({ page }) => {
+    await writeStore([LIVE_GAME, FINAL_GAME_A]);
+
+    const scoreRequests = trackScoreRequests(page);
+    await page.clock.install();
+    // networkidle: the first poll timer is scheduled before the clock moves.
     await page.goto("/ro/program", { waitUntil: "networkidle" });
-    await page.waitForTimeout(2000);
+    expect(scoreRequests).toHaveLength(1);
 
-    expect(scoreRequests).toHaveLength(0);
+    await page.clock.runFor(POLL_INTERVAL_MS - 1_000);
+    expect(scoreRequests).toHaveLength(1);
+
+    await advanceUntilRequestCount(page, scoreRequests, 2);
+    await advanceUntilRequestCount(page, scoreRequests, 3); // keeps going
+
+  });
+
+  // The fetch on mount is deliberate: /program is ISR-cached, so a copy
+  // rendered before kickoff only learns a game went live by asking once.
+  test("a page with no live games stops after the fetch on mount", async ({ page }) => {
+    await writeStore([FINAL_GAME_A, FINAL_GAME_B]);
+
+    const scoreRequests = trackScoreRequests(page);
+    await page.clock.install();
+    await page.goto("/ro/program", { waitUntil: "networkidle" });
+    expect(scoreRequests).toHaveLength(1);
+
+    await page.clock.runFor(4 * POLL_INTERVAL_MS);
+    expect(scoreRequests).toHaveLength(1);
   });
 });
 
