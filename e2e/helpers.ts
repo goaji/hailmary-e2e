@@ -1,9 +1,34 @@
-import type { Locator, Page } from "@playwright/test";
+import { expect, type Locator, type Page } from "@playwright/test";
+import AxeBuilder from "@axe-core/playwright";
 
 export async function getAccent1(page: Page) {
   return page
     .getByRole("banner")
     .evaluate((el) => getComputedStyle(el).getPropertyValue("--accent-1").trim());
+}
+
+export async function selectTeam(page: Page, name: string) {
+  await page.getByRole("radio", { name }).click();
+}
+
+// configure: for scans narrowed to part of the page, e.g. (b) => b.include("header").
+export async function assertNoAccessibilityViolations(
+  page: Page,
+  configure: (builder: AxeBuilder) => AxeBuilder = (builder) => builder,
+) {
+  const results = await configure(new AxeBuilder({ page })).analyze();
+  expect(results.violations).toEqual([]);
+}
+
+export const VIEWPORT_WIDTHS = [375, 768, 1440] as const;
+
+// Heights stay per-spec: they set the capture area of existing baselines.
+export function viewportsWithHeights(heights: readonly [number, number, number]) {
+  return VIEWPORT_WIDTHS.map((width, index) => ({
+    label: String(width),
+    width,
+    height: heights[index],
+  }));
 }
 
 export async function hasHorizontalOverflow(page: Page) {

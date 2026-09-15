@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
+import { assertNoAccessibilityViolations, selectTeam } from "./helpers";
 
 test.describe("catch-all 404", () => {
   test("a genuinely unmatched ro path renders the styled, localized not-found page", async ({
@@ -38,10 +38,9 @@ test.describe("catch-all 404 accessibility across team accents", () => {
 
     test(`axe clean with ${team.name} selected`, async ({ page }) => {
       await page.goto("/ro/this-path-does-not-exist-anywhere");
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });

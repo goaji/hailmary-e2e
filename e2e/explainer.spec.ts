@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
+import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const ARTICLE_URL = `/ro/stiri/${SLUG}`;
@@ -148,22 +148,17 @@ test.describe("explainer panel accessibility across team accents", () => {
 
     test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page }) => {
       await page.goto(ARTICLE_URL);
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
       await page.getByRole("button", { name: "quarterback-ul" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
 
 test.describe("explainer panel visual regression", () => {
-  const viewports = [
-    { label: "375", width: 375, height: 800 },
-    { label: "768", width: 768, height: 900 },
-    { label: "1440", width: 1440, height: 900 },
-  ];
+  const viewports = viewportsWithHeights([800, 900, 900]);
 
   for (const viewport of viewports) {
     test(`panel open matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {

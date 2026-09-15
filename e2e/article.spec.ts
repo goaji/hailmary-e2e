@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
+import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const TITLE_RO = "Chiefs câștigă al treilea titlu consecutiv într-un final de poveste";
@@ -85,20 +85,15 @@ test.describe("article page accessibility across team accents", () => {
 
     test(`axe has no violations with ${team.name} selected`, async ({ page }) => {
       await page.goto(`/ro/stiri/${SLUG}`);
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
 
 test.describe("article page visual regression", () => {
-  const viewports = [
-    { label: "375", width: 375, height: 1200 },
-    { label: "768", width: 768, height: 1400 },
-    { label: "1440", width: 1440, height: 1400 },
-  ];
+  const viewports = viewportsWithHeights([1200, 1400, 1400]);
 
   for (const viewport of viewports) {
     test(`full page matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {

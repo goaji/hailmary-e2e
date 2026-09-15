@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { getAccent1 } from "./helpers";
+import { assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "./helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {
@@ -93,11 +92,10 @@ test.describe("teams index accessibility across team accents", () => {
 
     test(`axe clean on /echipe with ${team.name} selected`, async ({ page }) => {
       await page.goto("/ro/echipe");
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
       await expect.poll(() => getAccent1(page)).toBe(team.accent1);
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
@@ -119,22 +117,17 @@ test.describe("team detail accessibility across team accents", () => {
         page,
       }) => {
         await page.goto(`/ro/echipe/${slug}`);
-        await page.getByRole("radio", { name: pickerTeam.name }).click();
+        await selectTeam(page, pickerTeam.name);
         await expect.poll(() => getAccent1(page)).toBe(pickerTeam.accent1);
 
-        const results = await new AxeBuilder({ page }).analyze();
-        expect(results.violations).toEqual([]);
+        await assertNoAccessibilityViolations(page);
       });
     }
   }
 });
 
 test.describe("teams visual regression", () => {
-  const VIEWPORTS = [
-    { label: "375", width: 375, height: 1400 },
-    { label: "768", width: 768, height: 1400 },
-    { label: "1440", width: 1440, height: 1400 },
-  ];
+  const VIEWPORTS = viewportsWithHeights([1400, 1400, 1400]);
 
   for (const viewport of VIEWPORTS) {
     test(`index matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {

@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
+import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 const WIKI_HUB = "/ro/wiki";
 
@@ -199,10 +199,9 @@ test.describe("wiki pages accessibility across team accents", () => {
     for (const path of [WIKI_HUB, RULES_PAGE]) {
       test(`${path} axe clean with ${team.name} selected`, async ({ page }) => {
         await page.goto(path);
-        await page.getByRole("radio", { name: team.name }).click();
+        await selectTeam(page, team.name);
 
-        const results = await new AxeBuilder({ page }).analyze();
-        expect(results.violations).toEqual([]);
+        await assertNoAccessibilityViolations(page);
       });
     }
   }
@@ -214,20 +213,15 @@ test.describe("glossary accessibility across team accents", () => {
 
     test(`/glosar axe clean with ${team.name} selected`, async ({ page }) => {
       await page.goto("/ro/glosar"); // redirects to the first letter page
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
 
 test.describe("wiki pages visual regression", () => {
-  const viewports = [
-    { label: "375", width: 375, height: 1200 },
-    { label: "768", width: 768, height: 1400 },
-    { label: "1440", width: 1440, height: 1400 },
-  ];
+  const viewports = viewportsWithHeights([1200, 1400, 1400]);
   const pages = [
     { name: "wiki-hub", path: WIKI_HUB },
     { name: "wiki-page", path: RULES_PAGE },

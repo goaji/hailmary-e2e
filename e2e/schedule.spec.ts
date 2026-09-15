@@ -1,8 +1,8 @@
 import { test, expect, type Page } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
+import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 // No shared filesystem with the deployed target, so the store is seeded
 // over HTTP via /api/test/seed-scores rather than written to disk
@@ -75,11 +75,6 @@ const WEEK3_GAME: Game = {
   week: 3,
   status: "scheduled",
 };
-
-async function selectTeam(page: Page, name: string) {
-  await page.goto("/ro");
-  await page.getByRole("radio", { name }).click();
-}
 
 test.describe("degraded path — empty store", () => {
   test.beforeEach(() => clearStore());
@@ -280,21 +275,17 @@ test.describe("schedule accessibility across team accents", () => {
     const team = getTeam(slug);
 
     test(`axe clean on /program with ${team.name} selected`, async ({ page }) => {
+      await page.goto("/ro");
       await selectTeam(page, team.name);
       await page.goto("/ro/program");
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
 
 test.describe("schedule visual regression", () => {
-  const VIEWPORTS = [
-    { label: "375", width: 375, height: 1000 },
-    { label: "768", width: 768, height: 900 },
-    { label: "1440", width: 1440, height: 900 },
-  ];
+  const VIEWPORTS = viewportsWithHeights([1000, 900, 900]);
 
   test.describe("with a live game", () => {
     test.beforeAll(() => writeStore([LIVE_GAME, FINAL_GAME_A]));

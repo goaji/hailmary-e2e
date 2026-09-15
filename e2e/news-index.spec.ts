@@ -1,9 +1,8 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "./helpers";
+import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "./helpers";
 
 // No shared filesystem with the deployed target to count content/articles/ro
 // directly, so this asks the app instead — see E2E-SPLIT-PLAN.md.
@@ -122,8 +121,7 @@ test.describe("news index view toggle", () => {
       "true",
     );
 
-    const results = await new AxeBuilder({ page }).analyze();
-    expect(results.violations).toEqual([]);
+    await assertNoAccessibilityViolations(page);
   });
 });
 
@@ -133,10 +131,9 @@ test.describe("news index accessibility across team accents", () => {
 
     test(`axe clean on /stiri with ${team.name} selected`, async ({ page }) => {
       await page.goto("/ro/stiri");
-      await page.getByRole("radio", { name: team.name }).click();
+      await selectTeam(page, team.name);
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });

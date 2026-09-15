@@ -1,14 +1,9 @@
 import { test, expect } from "@playwright/test";
-import AxeBuilder from "@axe-core/playwright";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "./helpers";
+import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, viewportsWithHeights } from "./helpers";
 
-const VIEWPORTS = [
-  { label: "375", width: 375, height: 1200 },
-  { label: "768", width: 768, height: 1400 },
-  { label: "1440", width: 1440, height: 1400 },
-];
+const VIEWPORTS = viewportsWithHeights([1200, 1400, 1400]);
 
 test.describe("homepage composition", () => {
   test("featured article does not appear in the news grid", async ({ page }) => {
@@ -81,8 +76,7 @@ test.describe("homepage accessibility", () => {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto("/ro");
 
-      const results = await new AxeBuilder({ page }).analyze();
-      expect(results.violations).toEqual([]);
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
