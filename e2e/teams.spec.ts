@@ -53,7 +53,8 @@ test.describe("team detail page", () => {
   test("a team with no seed articles shows the empty news message, not empty cards", async ({
     page,
   }) => {
-    // Baltimore Ravens have no seed articles tagged.
+    // Baltimore Ravens have no articles tagged yet. Delete this test once
+    // every team has one — the empty state is then unreachable.
     await page.goto("/ro/echipe/bal");
 
     await expect(
