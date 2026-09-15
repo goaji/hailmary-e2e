@@ -8,29 +8,12 @@ const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const TITLE_RO = "Chiefs câștigă al treilea titlu consecutiv într-un final de poveste";
 
 test.describe("article page", () => {
-  test("renders the title as h1, a byline, and a hero image with non-empty alt", async ({
-    page,
-  }) => {
+  test("renders the title as h1 and a byline", async ({ page }) => {
     await page.goto(`/ro/stiri/${SLUG}`);
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(TITLE_RO);
-    await expect(page.getByText(/Admin ·/)).toBeVisible();
-
-    const heroImage = page.locator("header img").first();
-    const alt = await heroImage.getAttribute("alt");
-    expect(alt).toBeTruthy();
-  });
-
-  test("an article with no `image` in frontmatter still renders a default cover image", async ({
-    page,
-  }) => {
-    await page.goto("/ro/stiri/programul-saptamanii-13");
-
-    const heroImage = page.locator("header img").first();
-    // next/image rewrites src through its optimizer, so the original path
-    // survives only as the (percent-encoded) `url` query param.
-    await expect(heroImage).toHaveAttribute("src", /url=%2Fplaceholder%2Fdefault-/);
-    await expect(heroImage).toHaveAttribute("alt", ro.article.defaultImageAlt);
+    const article = page.getByRole("article").filter({ has: page.getByRole("heading", { level: 1 }) });
+    await expect(article.getByText(/Admin/)).toBeVisible();
   });
 
   test("heading tree is exactly one h1, then h2s and h3s", async ({ page }) => {

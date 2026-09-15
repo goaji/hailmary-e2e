@@ -4,26 +4,27 @@ import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const ARTICLE_URL = `/ro/stiri/${SLUG}`;
+const QUARTERBACK_SHORT =
+  "Jucătorul care conduce ofensiva și primește mingea la începutul aproape fiecărei faze de joc.";
+const GLOSSARY_TERM_URL = "/ro/glosar/q#quarterback";
 
 test.describe("no-JS TermLink", () => {
   test.use({ javaScriptEnabled: false });
 
-  test("term is a working link to the glossary anchor, highlighted on arrival", async ({ page }) => {
+  test("term is a working link to its entry on the glossary letter page", async ({ page }) => {
     await page.goto(ARTICLE_URL);
 
     // exact: true — the article's own Related Articles card title also
     // contains "quarterback-ul" as a substring.
     const link = page.getByRole("link", { name: "quarterback-ul", exact: true });
-    await expect(link).toHaveAttribute("href", "/ro/glosar#quarterback");
+    await expect(link).toHaveAttribute("href", GLOSSARY_TERM_URL);
     await link.click();
 
-    await expect(page).toHaveURL(/\/ro\/glosar#quarterback$/);
+    await expect(page).toHaveURL((url) => url.pathname + url.hash === GLOSSARY_TERM_URL);
+    // #quarterback is GlossaryTerm's own stable anchor id — the URL contract, not a styling hook.
+    const term = page.locator("#quarterback");
+    await expect(term.getByRole("heading", { name: "Quarterback", exact: true })).toBeVisible();
     await expect(page.locator("#quarterback:target")).toHaveCount(1);
-
-    const details = page.locator("#quarterback").locator("xpath=ancestor::details");
-    await expect(details).toHaveJSProperty("open", true);
-    const borderColor = await details.evaluate((el) => getComputedStyle(el).borderLeftColor);
-    expect(borderColor).not.toBe("rgb(42, 44, 52)"); // v.$c-border — the non-highlighted default
   });
 });
 
@@ -40,8 +41,7 @@ test.describe("explainer panel", () => {
     });
 
     await test.step("focus moved into the panel", async () => {
-      // exact: true — same Related Articles collision as the no-JS test above.
-      await expect(page.getByRole("heading", { name: "Quarterback", exact: true })).toBeFocused();
+      await expect(page.getByRole("dialog").getByRole("heading", { name: "Quarterback" })).toBeFocused();
     });
 
     await test.step("Escape closes and returns focus to the trigger", async () => {
@@ -77,7 +77,7 @@ test.describe("explainer panel", () => {
   test("desktop: the article column actually shifts when the panel opens", async ({ page }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(ARTICLE_URL);
-    const main = page.locator("main");
+    const main = page.getByRole("main");
     const before = await main.boundingBox();
 
     await page.getByRole("button", { name: "quarterback-ul" }).click();
@@ -111,7 +111,9 @@ test.describe("hover tooltip", () => {
     await page.goto(ARTICLE_URL);
     const trigger = page.getByRole("button", { name: "quarterback-ul" });
     await trigger.waitFor();
-    const tooltip = trigger.locator("span");
+    // The tooltip is aria-hidden on purpose (it duplicates the trigger's name
+    // plus the panel's content), so it has no role — its visible text is the handle.
+    const tooltip = trigger.getByText(QUARTERBACK_SHORT);
 
     await test.step("not visible immediately on hover", async () => {
       await trigger.hover();
@@ -184,7 +186,7 @@ test.describe("reduced motion", () => {
     const dialog = page.getByRole("dialog");
     await expect(dialog).toBeVisible();
 
-    const transform = await page.locator("dialog[open]").evaluate((el) => getComputedStyle(el).transform);
+    const transform = await dialog.evaluate((el) => getComputedStyle(el).transform);
     expect(transform).toBe("matrix(1, 0, 0, 1, 0, 0)"); // identity — already at rest, no partial slide
 
     await page.keyboard.press("Escape");

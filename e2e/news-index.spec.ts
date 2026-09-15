@@ -33,7 +33,9 @@ test.describe("news index", () => {
     page,
   }) => {
     await page.goto("/ro/stiri");
-    const navLink = page.getByRole("navigation").getByRole("link", { name: ro.nav.news });
+    const navLink = page
+      .getByRole("navigation", { name: ro.nav.mainLabel })
+      .getByRole("link", { name: ro.nav.news });
     await expect(navLink).toHaveAttribute("href", "/ro/stiri");
     await expect(navLink).toHaveAttribute("aria-current", "page");
 

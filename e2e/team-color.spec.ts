@@ -1,16 +1,7 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
-
-// --accent-1 inherits from the TeamColorProvider wrapper to every
-// descendant, so reading it off the header landmark (already reachable by
-// role) avoids needing a testid for a non-interactive styling passthrough.
-// <body> itself won't work — it's the wrapper's ancestor, not a descendant.
-async function getAccent1(page: Page) {
-  return page
-    .getByRole("banner")
-    .evaluate((el) => getComputedStyle(el).getPropertyValue("--accent-1").trim());
-}
+import { getAccent1 } from "./helpers";
 
 test.describe("team color switching", () => {
   test("selecting a team updates --accent-1, persists across reload, and is keyboard-navigable", async ({

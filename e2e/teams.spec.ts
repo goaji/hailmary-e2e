@@ -1,23 +1,15 @@
-import { test, expect, type Page } from "@playwright/test";
+import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-
-// --accent-1 inherits from the TeamColorProvider wrapper to every
-// descendant, so reading it off the header landmark (already reachable by
-// role) avoids needing a testid — same helper as team-color.spec.ts.
-async function getAccent1(page: Page) {
-  return page
-    .getByRole("banner")
-    .evaluate((el) => getComputedStyle(el).getPropertyValue("--accent-1").trim());
-}
+import { getAccent1 } from "./helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {
     await page.goto("/ro/echipe");
 
     for (const team of TEAMS) {
-      await expect(page.getByRole("link", { name: team.name })).toBeVisible();
+      await expect(page.getByRole("link", { name: team.name, exact: true })).toBeVisible();
     }
   });
 
@@ -26,11 +18,21 @@ test.describe("teams index", () => {
   }) => {
     await page.goto("/ro/echipe");
 
-    const conferenceHeadings = await page.getByRole("heading", { level: 2 }).allTextContents();
-    expect(conferenceHeadings).toEqual([...CONFERENCES]);
+    for (const conference of CONFERENCES) {
+      // exact: a division region is named "AFC East" (conference + division),
+      // which would otherwise also match { name: "AFC" }.
+      const conferenceRegion = page.getByRole("region", { name: conference, exact: true });
+      await expect(conferenceRegion.getByRole("heading", { level: 2 })).toHaveText(conference);
 
-    const divisionHeadings = await page.getByRole("heading", { level: 3 }).allTextContents();
-    expect(divisionHeadings).toEqual([...CONFERENCES.flatMap(() => DIVISIONS)]);
+      const divisionHeadings = await conferenceRegion.getByRole("heading", { level: 3 }).allTextContents();
+      expect(divisionHeadings).toEqual([...DIVISIONS]);
+
+      for (const division of DIVISIONS) {
+        await expect(
+          conferenceRegion.getByRole("region", { name: `${conference} ${division}`, exact: true }),
+        ).toBeVisible();
+      }
+    }
   });
 });
 

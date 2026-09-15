@@ -89,9 +89,10 @@ test.describe("degraded path — empty store", () => {
     await page.goto("/ro/program");
 
     await expect(page.getByText(ro.schedulePage.liveUnavailableNotice)).toBeVisible();
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByText("49ers")).toBeVisible();
-    await expect(page.getByText("Ravens")).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row", { name: /49ers/ })).toBeVisible();
+    await expect(table.getByRole("row", { name: /Ravens/ })).toBeVisible();
   });
 
   test("kickoff times render in Bucharest local time under a foreign browser timezone", async ({
@@ -105,7 +106,7 @@ test.describe("degraded path — empty store", () => {
 
     // Matches formatKickoff.test.ts's known conversion for this exact
     // fixture kickoff (2026-09-13T17:00:00Z -> 20:00 Bucharest, UTC+3 in September).
-    await expect(page.getByText("dum. 20:00")).toBeVisible();
+    await expect(page.getByRole("table").getByText("dum. 20:00")).toBeVisible();
 
     await context.close();
   });
@@ -121,18 +122,23 @@ test.describe("week selector and table structure", () => {
     const week2Link = ro.schedulePage.week.replace("{week}", "2");
     const week3Link = ro.schedulePage.week.replace("{week}", "3");
 
+    const table = page.getByRole("table");
+
     await expect(page.getByRole("link", { name: week2Link })).toHaveAttribute("aria-current", "page");
-    await expect(page.getByText("Chiefs")).toBeVisible();
+    await expect(table.getByRole("row", { name: /Chiefs/ })).toBeVisible();
 
     await page.getByRole("link", { name: week3Link }).click();
     await expect(page).toHaveURL(/\?etapa=3$/);
     await expect(page.getByRole("link", { name: week3Link })).toHaveAttribute("aria-current", "page");
-    await expect(page.getByText("Seahawks")).toBeVisible();
-    await expect(page.getByText("Chiefs")).not.toBeVisible();
+    await expect(table.getByRole("row", { name: /Seahawks/ })).toBeVisible();
+    // toHaveCount(0), not not.toBeVisible(): the row must be gone from the
+    // week 3 table, not merely hidden, and a missing table can't pass this.
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row", { name: /Chiefs/ })).toHaveCount(0);
 
     await page.goBack();
     await expect(page).not.toHaveURL(/\?etapa=3$/);
-    await expect(page.getByText("Chiefs")).toBeVisible();
+    await expect(table.getByRole("row", { name: /Chiefs/ })).toBeVisible();
   });
 
   test("page has a single h1 naming the current week", async ({ page }) => {
@@ -166,7 +172,7 @@ test.describe("week selector and table structure", () => {
     page,
   }) => {
     await page.goto("/ro/program");
-    await expect(page.getByText(ro.liveScoreBadge.live)).toBeVisible();
+    await expect(page.getByRole("table").getByText(ro.liveScoreBadge.live)).toBeVisible();
   });
 
   // A screen reader only hears a score/clock change if it's inside a live
@@ -216,8 +222,9 @@ test.describe("no-JS", () => {
   test("schedule still renders correctly without JavaScript", async ({ page }) => {
     await page.goto("/ro/program");
 
-    await expect(page.getByRole("table")).toBeVisible();
-    await expect(page.getByText("49ers")).toBeVisible();
+    const table = page.getByRole("table");
+    await expect(table).toBeVisible();
+    await expect(table.getByRole("row", { name: /49ers/ })).toBeVisible();
   });
 });
 

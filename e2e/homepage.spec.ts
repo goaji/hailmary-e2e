@@ -91,18 +91,19 @@ test.describe("prefers-reduced-motion", () => {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto("/ro");
 
-    const phrases = page.locator('[class*="phrase"]');
-    const count = await phrases.count();
-    expect(count).toBeGreaterThan(0);
+    const strip = page.locator("#origin-strip");
+    const phrases = [
+      ro.originStrip.phrase1,
+      ro.originStrip.phrase2,
+      ro.originStrip.phrase3,
+      ro.originStrip.phrase4,
+    ];
 
-    const styles = await phrases.evaluateAll((els) =>
-      els.map((el) => {
+    for (const phrase of phrases) {
+      const style = await strip.getByText(phrase.trim()).evaluate((el) => {
         const cs = getComputedStyle(el);
         return { animationName: cs.animationName, opacity: cs.opacity };
-      }),
-    );
-
-    for (const style of styles) {
+      });
       expect(style.animationName).toBe("none");
       expect(style.opacity).toBe("1");
     }
