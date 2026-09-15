@@ -3,6 +3,7 @@ import AxeBuilder from "@axe-core/playwright";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
+import { columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "./helpers";
 
 // No shared filesystem with the deployed target to count content/articles/ro
 // directly, so this asks the app instead — see E2E-SPLIT-PLAN.md.
@@ -130,43 +131,43 @@ test.describe("news index accessibility across team accents", () => {
   }
 });
 
-test.describe("news index visual regression", () => {
-  const VIEWPORTS = [
-    { label: "375", width: 375, height: 1400 },
-    { label: "768", width: 768, height: 1400 },
-    { label: "1440", width: 1440, height: 1400 },
+// Layout checks instead of full-page screenshots: the news index is
+// editorial content, so a screenshot baseline breaks with every published
+// article.
+test.describe("news index layout", () => {
+  const LAYOUTS = [
+    { width: 375, height: 900, gridColumns: 1 },
+    { width: 768, height: 900, gridColumns: 2 },
+    { width: 1440, height: 900, gridColumns: 3 },
   ];
 
-  for (const viewport of VIEWPORTS) {
-    test(`matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.emulateMedia({ reducedMotion: "reduce" });
+  for (const layout of LAYOUTS) {
+    test(`grid view reflows to ${layout.gridColumns} column(s) at ${layout.width}px`, async ({
+      page,
+    }) => {
+      await page.setViewportSize({ width: layout.width, height: layout.height });
       await page.goto("/ro/stiri");
 
-      // nextjs-portal is the dev-only build/route indicator — see the
-      // equivalent note in homepage.spec.ts.
-      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+      const cards = page.getByRole("article");
+      await expect(cards.first()).toBeVisible();
 
-      await expect(page).toHaveScreenshot(`news-index-${viewport.label}.png`, {
-        fullPage: true,
-      });
+      expect(await hasHorizontalOverflow(page)).toBe(false);
+      expect(await itemsOutsideViewport(cards)).toEqual([]);
+      expect(await columnCount(cards)).toBe(Math.min(layout.gridColumns, await cards.count()));
     });
 
-    test(`list view matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.emulateMedia({ reducedMotion: "reduce" });
+    test(`list view stacks one card per row at ${layout.width}px`, async ({ page }) => {
+      await page.setViewportSize({ width: layout.width, height: layout.height });
       await page.goto("/ro/stiri");
-      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
-      await page.getByRole("radio", { name: ro.newsIndex.listView }).click();
-      await expect(page.getByRole("radio", { name: ro.newsIndex.listView })).toHaveAttribute(
-        "aria-checked",
-        "true",
-      );
+      const listView = page.getByRole("radio", { name: ro.newsIndex.listView });
+      await listView.click();
+      await expect(listView).toHaveAttribute("aria-checked", "true");
 
-      await expect(page).toHaveScreenshot(`news-index-list-${viewport.label}.png`, {
-        fullPage: true,
-      });
+      const cards = page.getByRole("article");
+      expect(await hasHorizontalOverflow(page)).toBe(false);
+      expect(await itemsOutsideViewport(cards)).toEqual([]);
+      expect(await columnCount(cards)).toBe(1);
     });
   }
 });

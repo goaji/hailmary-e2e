@@ -106,8 +106,11 @@ test.describe("article page visual regression", () => {
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(`/ro/stiri/${SLUG}`);
 
-      // nextjs-portal is the dev-only build/route indicator — see the
-      // equivalent note in homepage.spec.ts.
+      // nextjs-portal is the dev-only build/route indicator injected by
+      // `next dev` (this suite runs against it) — never present in a
+      // production build. It's position: fixed, which `mask` doesn't
+      // track reliably across a fullPage screenshot's scroll-stitching,
+      // so it's hidden outright rather than masked.
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
       await expect(page).toHaveScreenshot(`article-${viewport.label}.png`, {

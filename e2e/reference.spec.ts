@@ -240,7 +240,7 @@ test.describe("wiki pages visual regression", () => {
         await page.emulateMedia({ reducedMotion: "reduce" });
         await page.goto(path);
 
-        // nextjs-portal is the dev-only build/route indicator — see homepage.spec.ts.
+        // nextjs-portal is the dev-only build/route indicator — see article.spec.ts.
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
         await expect(page).toHaveScreenshot(`${name}-${viewport.label}.png`, {

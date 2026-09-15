@@ -142,7 +142,7 @@ test.describe("teams visual regression", () => {
       await page.goto("/ro/echipe");
 
       // nextjs-portal is the dev-only build/route indicator — see the
-      // equivalent note in homepage.spec.ts.
+      // equivalent note in article.spec.ts.
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
       await expect(page).toHaveScreenshot(`teams-index-${viewport.label}.png`, {

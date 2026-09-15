@@ -2,6 +2,7 @@ import { test, expect } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
+import { columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "./helpers";
 
 const VIEWPORTS = [
   { label: "375", width: 375, height: 1200 },
@@ -110,27 +111,43 @@ test.describe("prefers-reduced-motion", () => {
   });
 });
 
-test.describe("homepage visual regression", () => {
-  for (const viewport of VIEWPORTS) {
-    test(`full page matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      // Reduced motion for a stable capture; the byline is masked because
-      // its text can shift from a relative ("acum 2 zile") to an absolute
-      // date as real time passes, independent of any code change here.
-      await page.emulateMedia({ reducedMotion: "reduce" });
+// Layout checks instead of full-page screenshots: the homepage is editorial
+// content, so a screenshot baseline breaks with every published article.
+test.describe("homepage layout", () => {
+  const LAYOUTS = [
+    { width: 375, height: 900, newsColumns: 1, sidebarBesideGrid: false },
+    { width: 768, height: 900, newsColumns: 2, sidebarBesideGrid: true },
+    { width: 1440, height: 900, newsColumns: 2, sidebarBesideGrid: true },
+  ];
+
+  for (const layout of LAYOUTS) {
+    test(`reflows without horizontal overflow at ${layout.width}px`, async ({ page }) => {
+      await page.setViewportSize({ width: layout.width, height: layout.height });
       await page.goto("/ro");
 
-      // nextjs-portal is the dev-only build/route indicator injected by
-      // `next dev` (this suite runs against it) — never present in a
-      // production build. It's position: fixed, which `mask` doesn't
-      // track reliably across a fullPage screenshot's scroll-stitching,
-      // so it's hidden outright rather than masked.
-      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+      const newsGrid = page.getByRole("region", { name: ro.newsGrid.heading, exact: true });
+      const cards = newsGrid.getByRole("article");
+      await expect(cards.first()).toBeVisible();
 
-      await expect(page).toHaveScreenshot(`homepage-${viewport.label}.png`, {
-        fullPage: true,
-        mask: [page.locator('[class*="byline"]')],
-      });
+      expect(await hasHorizontalOverflow(page)).toBe(false);
+      expect(await itemsOutsideViewport(cards)).toEqual([]);
+      expect(await columnCount(cards)).toBe(Math.min(layout.newsColumns, await cards.count()));
+
+      const gridBox = await newsGrid.boundingBox();
+      const sidebarBox = await page
+        .getByRole("region", { name: ro.sidebar.beginnerGuide.heading, exact: true })
+        .boundingBox();
+      if (!gridBox || !sidebarBox) {
+        throw new Error("news grid or sidebar is not rendered");
+      }
+
+      const gridBottom = gridBox.y + gridBox.height;
+      if (layout.sidebarBesideGrid) {
+        expect(sidebarBox.x).toBeGreaterThanOrEqual(gridBox.x + gridBox.width);
+        expect(sidebarBox.y).toBeLessThan(gridBottom);
+      } else {
+        expect(sidebarBox.y).toBeGreaterThanOrEqual(gridBottom);
+      }
     });
   }
 });

@@ -164,7 +164,7 @@ test.describe("explainer panel visual regression", () => {
       await page.goto(ARTICLE_URL);
 
       // nextjs-portal is the dev-only build/route indicator — see the
-      // equivalent note in homepage.spec.ts.
+      // equivalent note in article.spec.ts.
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
       await page.getByRole("button", { name: "quarterback-ul" }).click();
