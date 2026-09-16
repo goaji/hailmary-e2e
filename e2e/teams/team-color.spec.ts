@@ -23,9 +23,9 @@ test.describe("team color switching", () => {
       await expect(chiefsRadio).toHaveAttribute("aria-checked", "false");
     });
 
-    await test.step("reload rehydrates the persisted team with no flash of the default", async () => {
-      // No page.waitForTimeout() before this assertion: if the persisted
-      // team flashed the default before applying, this poll would catch it.
+    await test.step("reload restores the saved team", async () => {
+      // Polls until the saved team shows, so a default flash before hydration still passes.
+      // Tracked in goaji/hailmary#11, which adds a pre-hydration test.
       await page.reload();
       await expect.poll(() => siteHeader.accent1()).toBe(getTeam("phi").accent1);
       await expect(eaglesRadio).toHaveAttribute("aria-checked", "true");
