@@ -2,14 +2,13 @@ import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
 import { test, expect } from "../../fixtures/pageTest";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, ANCHOR_ARTICLE_SLUG, assertNoAccessibilityViolations } from "../../helpers";
 
-const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const TITLE_RO = "Chiefs câștigă al treilea titlu consecutiv într-un final de poveste";
 
 test.describe("article page", () => {
   test("renders the title as h1 and a byline", async ({ page }) => {
-    await page.goto(`/ro/stiri/${SLUG}`);
+    await page.goto(`/ro/stiri/${ANCHOR_ARTICLE_SLUG}`);
 
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(TITLE_RO);
     const article = page.getByRole("article").filter({ has: page.getByRole("heading", { level: 1 }) });
@@ -17,7 +16,7 @@ test.describe("article page", () => {
   });
 
   test("heading tree is exactly one h1, then h2s and h3s", async ({ page }) => {
-    await page.goto(`/ro/stiri/${SLUG}`);
+    await page.goto(`/ro/stiri/${ANCHOR_ARTICLE_SLUG}`);
 
     // One h1 per page, but the tree is read inside the article: the rail's
     // own h2 sits before the article in the DOM and isn't part of it.
@@ -47,7 +46,7 @@ test.describe("article page", () => {
   test("/en fallback for a ro-only article shows the notice as role=status", async ({
     page,
   }) => {
-    await page.goto(`/en/stiri/${SLUG}`);
+    await page.goto(`/en/stiri/${ANCHOR_ARTICLE_SLUG}`);
 
     // This app renders the fallback notice rather than 404ing an /en
     // request for ro-only content — the data layer already decided ro
@@ -61,7 +60,7 @@ test.describe("article page", () => {
   test("internal MDX link keeps the locale prefix; external link has rel and target", async ({
     page,
   }) => {
-    await page.goto(`/ro/stiri/${SLUG}`);
+    await page.goto(`/ro/stiri/${ANCHOR_ARTICLE_SLUG}`);
 
     const internalLink = page.getByRole("link", {
       name: "modificarea recentă a regulii onside kick",
@@ -88,7 +87,7 @@ test.describe("article page accessibility across team accents", () => {
     const team = getTeam(slug);
 
     test(`axe has no violations with ${team.name} selected`, async ({ page, siteHeader }) => {
-      await page.goto(`/ro/stiri/${SLUG}`);
+      await page.goto(`/ro/stiri/${ANCHOR_ARTICLE_SLUG}`);
       await siteHeader.selectTeam(team.name);
 
       await assertNoAccessibilityViolations(page);

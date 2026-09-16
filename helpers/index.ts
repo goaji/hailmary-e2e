@@ -1,4 +1,4 @@
-import { expect, type Locator, type Page } from "@playwright/test";
+import { expect, type Browser, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
 // configure: for scans narrowed to part of the page, e.g. (b) => b.include(SITE_HEADER_AXE_SCOPE).
@@ -14,6 +14,9 @@ export async function assertNoAccessibilityViolations(
 // Patriots red 0.22) — where an accent-contrast bug shows first. Pages whose
 // own risk is accent contrast (header, team identity band) still scan all six.
 export const ACCENT_EXTREME_TEAMS = ["gb", "ne"] as const;
+
+// The one article whose exact content tests may assert; editing it means updating those tests.
+export const ANCHOR_ARTICLE_SLUG = "chiefs-al-treilea-titlu-consecutiv";
 
 export const VIEWPORT_WIDTHS = [375, 768, 1440] as const;
 
@@ -60,4 +63,14 @@ export async function tabTo(page: Page, target: Locator, maxPresses = 30): Promi
     if (focused) return;
   }
   throw new Error(`Tab never reached ${target} in ${maxPresses} presses`);
+}
+
+// Simulates closing and reopening the browser: keeps saved storage, drops session cookies.
+// The caller closes the returned page's context.
+export async function reopenBrowser(browser: Browser, page: Page): Promise<Page> {
+  const state = await page.context().storageState();
+  const cookies = state.cookies.filter((cookie) => cookie.expires !== -1);
+  const context = await browser.newContext({ storageState: { ...state, cookies } });
+  const reopened = await context.newPage();
+  return reopened;
 }

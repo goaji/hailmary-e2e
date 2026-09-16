@@ -1,9 +1,8 @@
 import { getTeam } from "@hailmary/shared";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, ANCHOR_ARTICLE_SLUG, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
 import { test, expect } from "../../fixtures/pageTest";
 
-const SLUG = "chiefs-al-treilea-titlu-consecutiv";
-const ARTICLE_URL = `/ro/stiri/${SLUG}`;
+const ARTICLE_URL = `/ro/stiri/${ANCHOR_ARTICLE_SLUG}`;
 const QUARTERBACK_SHORT =
   "Jucătorul care conduce ofensiva și primește mingea la începutul aproape fiecărei faze de joc.";
 const GLOSSARY_TERM_URL = "/ro/glosar/q#quarterback";

@@ -1,7 +1,7 @@
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import { articleCount } from "../../api/contentApi";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, ANCHOR_ARTICLE_SLUG, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, reopenBrowser } from "../../helpers";
 import { test, expect } from "../../fixtures/pageTest";
 import { NewsIndexPage } from "../../pageObjects/NewsIndexPage";
 
@@ -33,7 +33,7 @@ test.describe("news index", () => {
     await expect(navLink).toHaveAttribute("href", "/ro/stiri");
     await expect(navLink).toHaveAttribute("aria-current", "page");
 
-    await page.goto("/ro/stiri/chiefs-al-treilea-titlu-consecutiv");
+    await page.goto(`/ro/stiri/${ANCHOR_ARTICLE_SLUG}`);
     await expect(navLink).toHaveAttribute("aria-current", "page");
   });
 
@@ -114,6 +114,19 @@ test.describe("news index view toggle", () => {
       // Grid is also the pre-hydration default, so a reload can't prove it was saved.
       await expect.poll(() => newsIndexPage.storedView()).toBe("grid");
     });
+  });
+
+  test("the saved view survives closing and reopening the browser", async ({ page, newsIndexPage, browser }) => {
+    await newsIndexPage.goto();
+    await newsIndexPage.switchToListView();
+    await expect(newsIndexPage.listView).toHaveAttribute("aria-checked", "true");
+
+    const reopened = await reopenBrowser(browser, page);
+    const reopenedNewsIndex = new NewsIndexPage(reopened);
+    await reopenedNewsIndex.goto();
+    await expect(reopenedNewsIndex.listView).toHaveAttribute("aria-checked", "true");
+
+    await reopened.context().close();
   });
 
   test("axe clean on /stiri with list view active", async ({ page, newsIndexPage }) => {
