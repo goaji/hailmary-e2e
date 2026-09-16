@@ -4,6 +4,7 @@ import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
 import { test, expect } from "../../fixtures/seededScheduleTest";
 import { clearScores } from "../../api/scoresApi";
+import { SchedulePage } from "../../pageObjects/SchedulePage";
 import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
 
 // Seeding goes through api/scoresApi.ts; the seedSchedule fixture clears
@@ -64,11 +65,11 @@ test.describe("degraded path — empty store", () => {
 
   // getSchedule() returns no games at all for an empty store, so there is no
   // table to degrade — the notice needs synced games plus a failed poll.
-  test("renders the empty message and no table", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("renders the empty message and no table", async ({ schedulePage }) => {
+    await schedulePage.goto();
 
-    await expect(page.getByText(ro.schedulePage.empty)).toBeVisible();
-    await expect(page.getByRole("table")).toHaveCount(0);
+    await expect(schedulePage.emptyMessage).toBeVisible();
+    await expect(schedulePage.table).toHaveCount(0);
   });
 });
 
@@ -81,73 +82,65 @@ test.describe("week selector and table structure", () => {
     // A US-based browser timezone is the case most likely to reveal a bug
     // that a Bucharest-timezone dev machine would never catch.
     const context = await browser.newContext({ timezoneId: "America/New_York" });
-    const page = await context.newPage();
-    await page.goto("/ro/program");
+    const schedulePage = new SchedulePage(await context.newPage());
+    await schedulePage.goto();
 
     // FINAL_GAME_A's kickoff, per formatKickoff.test.ts's known conversion
     // (2026-09-13T17:00:00Z -> 20:00 Bucharest, UTC+3 in September).
-    await expect(page.getByRole("table").getByText("dum. 20:00")).toBeVisible();
+    await expect(schedulePage.table.getByText("dum. 20:00")).toBeVisible();
 
     await context.close();
   });
 
-  test("week links change the URL and the rendered week; back button works", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("week links change the URL and the rendered week; back button works", async ({ page, schedulePage }) => {
+    await schedulePage.goto();
 
-    const week2Link = ro.schedulePage.week.replace("{week}", "2");
-    const week3Link = ro.schedulePage.week.replace("{week}", "3");
+    await expect(schedulePage.weekLink(2)).toHaveAttribute("aria-current", "page");
+    await expect(schedulePage.row(/Chiefs/)).toBeVisible();
 
-    const table = page.getByRole("table");
-
-    await expect(page.getByRole("link", { name: week2Link })).toHaveAttribute("aria-current", "page");
-    await expect(table.getByRole("row", { name: /Chiefs/ })).toBeVisible();
-
-    await page.getByRole("link", { name: week3Link }).click();
+    await schedulePage.selectWeek(3);
     await expect(page).toHaveURL(/\?etapa=3$/);
-    await expect(page.getByRole("link", { name: week3Link })).toHaveAttribute("aria-current", "page");
-    await expect(table.getByRole("row", { name: /Seahawks/ })).toBeVisible();
+    await expect(schedulePage.weekLink(3)).toHaveAttribute("aria-current", "page");
+    await expect(schedulePage.row(/Seahawks/)).toBeVisible();
     // toHaveCount(0), not not.toBeVisible(): the row must be gone from the
     // week 3 table, not merely hidden, and a missing table can't pass this.
-    await expect(table).toBeVisible();
-    await expect(table.getByRole("row", { name: /Chiefs/ })).toHaveCount(0);
+    await expect(schedulePage.table).toBeVisible();
+    await expect(schedulePage.row(/Chiefs/)).toHaveCount(0);
 
     await page.goBack();
     await expect(page).not.toHaveURL(/\?etapa=3$/);
-    await expect(table.getByRole("row", { name: /Chiefs/ })).toBeVisible();
+    await expect(schedulePage.row(/Chiefs/)).toBeVisible();
   });
 
-  test("page has a single h1 naming the current week", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("page has a single h1 naming the current week", async ({ page, schedulePage }) => {
+    await schedulePage.goto();
 
-    await expect(
-      page.getByRole("heading", { level: 1, name: ro.schedulePage.titleWithWeek.replace("{week}", "2") }),
-    ).toBeVisible();
+    await expect(schedulePage.title(2)).toBeVisible();
     await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
   });
 
-  test("table has a caption naming the week and th scope=col headers", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("table has a caption naming the week and th scope=col headers", async ({ schedulePage }) => {
+    await schedulePage.goto();
 
-    const table = page.getByRole("table", { name: ro.scheduleTable.caption.replace("{week}", "2") });
+    const table = schedulePage.tableForWeek(2);
     await expect(table).toBeVisible();
     for (const name of [ro.scheduleTable.matchup, ro.scheduleTable.kickoff, ro.scheduleTable.score]) {
       await expect(table.getByRole("columnheader", { name })).toBeVisible();
     }
   });
 
-  test("the scroll wrapper is reachable by keyboard", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("the scroll wrapper is reachable by keyboard", async ({ schedulePage }) => {
+    await schedulePage.goto();
 
-    const region = page.getByRole("region", { name: ro.scheduleTable.scrollLabel });
-    await region.focus();
-    await expect(region).toBeFocused();
+    await schedulePage.scrollRegion.focus();
+    await expect(schedulePage.scrollRegion).toBeFocused();
   });
 
   test("live game exposes \"în direct\" to the accessibility tree, not just a colored dot", async ({
-    page,
+    schedulePage,
   }) => {
-    await page.goto("/ro/program");
-    await expect(page.getByRole("table").getByText(ro.liveScoreBadge.live)).toBeVisible();
+    await schedulePage.goto();
+    await expect(schedulePage.liveBadge).toBeVisible();
   });
 
   // A screen reader only hears a score/clock change if it's inside a live
@@ -155,16 +148,16 @@ test.describe("week selector and table structure", () => {
   // role="status" live regions expose no accessible *name* by spec (their
   // content is the announcement, not a label), so this checks the role's
   // presence and content separately rather than via getByRole's name filter.
-  test("live score and status badge are announced via role=status", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("live score and status badge are announced via role=status", async ({ page, schedulePage }) => {
+    await schedulePage.goto();
 
     const statuses = await page.getByRole("status").allTextContents();
     expect(statuses.some((text) => text.includes(ro.liveScoreBadge.live))).toBe(true);
     expect(statuses.some((text) => /\d+–\d+/.test(text))).toBe(true);
   });
 
-  test("no odds anywhere on the page", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("no odds anywhere on the page", async ({ page, schedulePage }) => {
+    await schedulePage.goto();
     const bodyText = await page.locator("body").innerText();
     for (const term of ["spread", "favorit", "underdog", "linie", "over/under"]) {
       expect(bodyText.toLowerCase()).not.toContain(term);
@@ -201,13 +194,13 @@ test.describe("live score polling", () => {
       .toBe(expected);
   }
 
-  test("a live game keeps polling every 15s", async ({ page, seedSchedule }) => {
+  test("a live game keeps polling every 15s", async ({ page, schedulePage, seedSchedule }) => {
     await seedSchedule([LIVE_GAME, FINAL_GAME_A]);
 
     const scoreRequests = trackScoreRequests(page);
     await page.clock.install();
     // networkidle: the first poll timer is scheduled before the clock moves.
-    await page.goto("/ro/program", { waitUntil: "networkidle" });
+    await schedulePage.goto({ waitUntil: "networkidle" });
     expect(scoreRequests).toHaveLength(1);
 
     await page.clock.runFor(POLL_INTERVAL_MS - 1_000);
@@ -220,12 +213,12 @@ test.describe("live score polling", () => {
 
   // The fetch on mount is deliberate: /program is ISR-cached, so a copy
   // rendered before kickoff only learns a game went live by asking once.
-  test("a page with no live games stops after the fetch on mount", async ({ page, seedSchedule }) => {
+  test("a page with no live games stops after the fetch on mount", async ({ page, schedulePage, seedSchedule }) => {
     await seedSchedule([FINAL_GAME_A, FINAL_GAME_B]);
 
     const scoreRequests = trackScoreRequests(page);
     await page.clock.install();
-    await page.goto("/ro/program", { waitUntil: "networkidle" });
+    await schedulePage.goto({ waitUntil: "networkidle" });
     expect(scoreRequests).toHaveLength(1);
 
     await page.clock.runFor(4 * POLL_INTERVAL_MS);
@@ -239,12 +232,11 @@ test.describe("no-JS", () => {
   // getCurrentWeek() picks.
   test.beforeEach(({ seedSchedule }) => seedSchedule([FINAL_GAME_A]));
 
-  test("schedule still renders correctly without JavaScript", async ({ page }) => {
-    await page.goto("/ro/program");
+  test("schedule still renders correctly without JavaScript", async ({ schedulePage }) => {
+    await schedulePage.goto();
 
-    const table = page.getByRole("table");
-    await expect(table).toBeVisible();
-    await expect(table.getByRole("row", { name: /Eagles/ })).toBeVisible();
+    await expect(schedulePage.table).toBeVisible();
+    await expect(schedulePage.row(/Eagles/)).toBeVisible();
   });
 });
 
@@ -254,10 +246,10 @@ test.describe("schedule accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe clean on /program with ${team.name} selected`, async ({ page, siteHeader }) => {
+    test(`axe clean on /program with ${team.name} selected`, async ({ page, siteHeader, schedulePage }) => {
       await page.goto("/ro");
       await siteHeader.selectTeam(team.name);
-      await page.goto("/ro/program");
+      await schedulePage.goto();
 
       await assertNoAccessibilityViolations(page);
     });
@@ -271,16 +263,16 @@ test.describe("schedule visual regression", () => {
     test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, FINAL_GAME_A]));
 
     for (const viewport of VIEWPORTS) {
-      test(`matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
+      test(`matches its ${viewport.label}px baseline screenshot`, async ({ page, schedulePage }) => {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await page.emulateMedia({ reducedMotion: "reduce" });
-        await page.goto("/ro/program");
+        await schedulePage.goto();
 
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
         await expect(page).toHaveScreenshot(`schedule-live-${viewport.label}.png`, {
           fullPage: true,
-          mask: [page.locator('[class*="updatedAt"]')],
+          mask: [schedulePage.updatedAt],
         });
       });
     }
@@ -290,16 +282,16 @@ test.describe("schedule visual regression", () => {
     test.beforeEach(({ seedSchedule }) => seedSchedule([FINAL_GAME_A, FINAL_GAME_B]));
 
     for (const viewport of VIEWPORTS) {
-      test(`matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
+      test(`matches its ${viewport.label}px baseline screenshot`, async ({ page, schedulePage }) => {
         await page.setViewportSize({ width: viewport.width, height: viewport.height });
         await page.emulateMedia({ reducedMotion: "reduce" });
-        await page.goto("/ro/program");
+        await schedulePage.goto();
 
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
         await expect(page).toHaveScreenshot(`schedule-final-${viewport.label}.png`, {
           fullPage: true,
-          mask: [page.locator('[class*="updatedAt"]')],
+          mask: [schedulePage.updatedAt],
         });
       });
     }
