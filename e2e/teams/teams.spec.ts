@@ -1,7 +1,7 @@
-import { test, expect } from "@playwright/test";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {
@@ -64,16 +64,16 @@ test.describe("team detail page", () => {
     await expect(page.getByRole("heading", { level: 3 })).toHaveCount(0);
   });
 
-  test("reader's accent survives navigating to a different team's page", async ({ page }) => {
+  test("reader's accent survives navigating to a different team's page", async ({ page, siteHeader }) => {
     // This is the task's central contract: the picker is a personal
     // preference, not a route-driven value — the identity band's brand1
     // colors the band only, never --accent-1.
     await page.goto("/ro");
-    await page.getByRole("radio", { name: "Pittsburgh Steelers" }).click();
-    await expect.poll(() => getAccent1(page)).toBe(getTeam("pit").accent1);
+    await siteHeader.selectTeam("Pittsburgh Steelers");
+    await expect.poll(() => siteHeader.accent1()).toBe(getTeam("pit").accent1);
 
     await page.goto("/ro/echipe/bal");
-    await expect.poll(() => getAccent1(page)).toBe(getTeam("pit").accent1);
+    await expect.poll(() => siteHeader.accent1()).toBe(getTeam("pit").accent1);
   });
 });
 
@@ -90,10 +90,10 @@ test.describe("teams index accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe clean on /echipe with ${team.name} selected`, async ({ page }) => {
+    test(`axe clean on /echipe with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto("/ro/echipe");
-      await selectTeam(page, team.name);
-      await expect.poll(() => getAccent1(page)).toBe(team.accent1);
+      await siteHeader.selectTeam(team.name);
+      await expect.poll(() => siteHeader.accent1()).toBe(team.accent1);
 
       await assertNoAccessibilityViolations(page);
     });
@@ -115,10 +115,11 @@ test.describe("team detail accessibility across team accents", () => {
 
       test(`axe clean on /echipe/${slug} (${label}) with ${pickerTeam.name} selected`, async ({
         page,
+        siteHeader,
       }) => {
         await page.goto(`/ro/echipe/${slug}`);
-        await selectTeam(page, pickerTeam.name);
-        await expect.poll(() => getAccent1(page)).toBe(pickerTeam.accent1);
+        await siteHeader.selectTeam(pickerTeam.name);
+        await expect.poll(() => siteHeader.accent1()).toBe(pickerTeam.accent1);
 
         await assertNoAccessibilityViolations(page);
       });

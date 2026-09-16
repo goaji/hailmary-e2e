@@ -1,9 +1,9 @@
-import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
 import { articleCount } from "../../api/contentApi";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
 
 test.describe("news index", () => {
   test("renders every ro article as a heading link, newest first", async ({ page, request }) => {
@@ -119,9 +119,9 @@ test.describe("news index accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe clean on /stiri with ${team.name} selected`, async ({ page }) => {
+    test(`axe clean on /stiri with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto("/ro/stiri");
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
 
       await assertNoAccessibilityViolations(page);
     });

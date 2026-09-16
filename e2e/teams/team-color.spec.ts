@@ -1,25 +1,24 @@
-import { test, expect } from "@playwright/test";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
-import { assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
+import { assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
 
 test.describe("team color switching", () => {
   test("selecting a team updates --accent-1, persists across reload, and is keyboard-navigable", async ({
     page,
+    siteHeader,
   }) => {
-    const chiefsRadio = page.getByRole("radio", { name: "Kansas City Chiefs" });
-    const eaglesRadio = page.getByRole("radio", {
-      name: "Philadelphia Eagles",
-    });
+    const chiefsRadio = siteHeader.teamRadio("Kansas City Chiefs");
+    const eaglesRadio = siteHeader.teamRadio("Philadelphia Eagles");
 
     await test.step("defaults to the Chiefs on first load", async () => {
       await page.goto("/ro");
-      await expect.poll(() => getAccent1(page)).toBe(getTeam("kc").accent1);
+      await expect.poll(() => siteHeader.accent1()).toBe(getTeam("kc").accent1);
     });
 
     await test.step("clicking a swatch updates the accent and aria-checked", async () => {
       await eaglesRadio.click();
 
-      await expect.poll(() => getAccent1(page)).toBe(getTeam("phi").accent1);
+      await expect.poll(() => siteHeader.accent1()).toBe(getTeam("phi").accent1);
       await expect(eaglesRadio).toHaveAttribute("aria-checked", "true");
       await expect(chiefsRadio).toHaveAttribute("aria-checked", "false");
     });
@@ -28,7 +27,7 @@ test.describe("team color switching", () => {
       // No page.waitForTimeout() before this assertion: if the persisted
       // team flashed the default before applying, this poll would catch it.
       await page.reload();
-      await expect.poll(() => getAccent1(page)).toBe(getTeam("phi").accent1);
+      await expect.poll(() => siteHeader.accent1()).toBe(getTeam("phi").accent1);
       await expect(eaglesRadio).toHaveAttribute("aria-checked", "true");
     });
 
@@ -36,11 +35,11 @@ test.describe("team color switching", () => {
       await eaglesRadio.focus();
       await page.keyboard.press("ArrowRight");
 
-      const cowboysRadio = page.getByRole("radio", { name: "Dallas Cowboys" });
+      const cowboysRadio = siteHeader.teamRadio("Dallas Cowboys");
       await expect(cowboysRadio).toBeFocused();
       await expect(cowboysRadio).toHaveAttribute("aria-checked", "true");
       await expect(eaglesRadio).toHaveAttribute("aria-checked", "false");
-      await expect.poll(() => getAccent1(page)).toBe(getTeam("dal").accent1);
+      await expect.poll(() => siteHeader.accent1()).toBe(getTeam("dal").accent1);
     });
   });
 });
@@ -51,10 +50,11 @@ test.describe("header accessibility across team accents", () => {
 
     test(`header has no axe violations with ${team.name} selected as the active team`, async ({
       page,
+      siteHeader,
     }) => {
       await page.goto("/ro");
-      await selectTeam(page, team.name);
-      await expect.poll(() => getAccent1(page)).toBe(team.accent1);
+      await siteHeader.selectTeam(team.name);
+      await expect.poll(() => siteHeader.accent1()).toBe(team.accent1);
 
       // Scoped to the header deliberately: this spec exercises the team
       // picker, which only affects the header. A whole-page axe pass
@@ -72,6 +72,7 @@ test.describe("header visual regression", () => {
   for (const viewport of viewports) {
     test(`header matches its ${viewport.label}px baseline screenshot`, async ({
       page,
+      siteHeader,
     }) => {
       await page.setViewportSize({
         width: viewport.width,
@@ -79,7 +80,7 @@ test.describe("header visual regression", () => {
       });
       await page.goto("/ro");
 
-      await expect(page.getByRole("banner")).toHaveScreenshot(
+      await expect(siteHeader.banner).toHaveScreenshot(
         `header-${viewport.label}.png`,
       );
     });

@@ -15,6 +15,7 @@
     "e2e-smoke/**/*.ts",
     "api/**/*.ts",
     "helpers/**/*.ts",
+    "pageObjects/**/*.ts",
     "fixtures/**/*.ts",
     "playwright.config.ts",
     "playwright.smoke.config.ts"

@@ -1,4 +1,4 @@
-import { test as base } from "@playwright/test";
+import { test as base } from "./pageTest";
 import type { Game } from "@hailmary/shared";
 import { clearScores, seedScores } from "../api/scoresApi";
 

@@ -1,6 +1,6 @@
-import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const ARTICLE_URL = `/ro/stiri/${SLUG}`;
@@ -146,9 +146,9 @@ test.describe("explainer panel accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page }) => {
+    test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto(ARTICLE_URL);
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
       await page.getByRole("button", { name: "quarterback-ul" }).click();
       await expect(page.getByRole("dialog")).toBeVisible();
 

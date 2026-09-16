@@ -1,8 +1,8 @@
-import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
 
 test.describe("catch-all 404", () => {
   test("a genuinely unmatched ro path renders the styled, localized not-found page", async ({
@@ -36,9 +36,9 @@ test.describe("catch-all 404 accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe clean with ${team.name} selected`, async ({ page }) => {
+    test(`axe clean with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto("/ro/this-path-does-not-exist-anywhere");
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
 
       await assertNoAccessibilityViolations(page);
     });

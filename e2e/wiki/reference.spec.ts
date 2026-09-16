@@ -1,7 +1,8 @@
-import { test, expect, type Locator, type Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
 
 const WIKI_HUB = "/ro/wiki";
 
@@ -197,9 +198,9 @@ test.describe("wiki pages accessibility across team accents", () => {
     const team = getTeam(slug);
 
     for (const path of [WIKI_HUB, RULES_PAGE]) {
-      test(`${path} axe clean with ${team.name} selected`, async ({ page }) => {
+      test(`${path} axe clean with ${team.name} selected`, async ({ page, siteHeader }) => {
         await page.goto(path);
-        await selectTeam(page, team.name);
+        await siteHeader.selectTeam(team.name);
 
         await assertNoAccessibilityViolations(page);
       });
@@ -211,9 +212,9 @@ test.describe("glossary accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`/glosar axe clean with ${team.name} selected`, async ({ page }) => {
+    test(`/glosar axe clean with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto("/ro/glosar"); // redirects to the first letter page
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
 
       await assertNoAccessibilityViolations(page);
     });

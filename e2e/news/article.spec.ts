@@ -1,8 +1,8 @@
-import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "../../helpers";
+import { test, expect } from "../../fixtures/pageTest";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const TITLE_RO = "Chiefs câștigă al treilea titlu consecutiv într-un final de poveste";
@@ -87,9 +87,9 @@ test.describe("article page accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe has no violations with ${team.name} selected`, async ({ page }) => {
+    test(`axe has no violations with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto(`/ro/stiri/${SLUG}`);
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
 
       await assertNoAccessibilityViolations(page);
     });

@@ -4,7 +4,7 @@ import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
 import { test, expect } from "../../fixtures/seededScheduleTest";
 import { clearScores } from "../../api/scoresApi";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
 
 // Seeding goes through api/scoresApi.ts; the seedSchedule fixture clears
 // the store afterwards. Every test here shares that one store, so the whole
@@ -250,9 +250,9 @@ test.describe("schedule accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe clean on /program with ${team.name} selected`, async ({ page }) => {
+    test(`axe clean on /program with ${team.name} selected`, async ({ page, siteHeader }) => {
       await page.goto("/ro");
-      await selectTeam(page, team.name);
+      await siteHeader.selectTeam(team.name);
       await page.goto("/ro/program");
 
       await assertNoAccessibilityViolations(page);

@@ -1,16 +1,6 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-export async function getAccent1(page: Page) {
-  return page
-    .getByRole("banner")
-    .evaluate((el) => getComputedStyle(el).getPropertyValue("--accent-1").trim());
-}
-
-export async function selectTeam(page: Page, name: string) {
-  await page.getByRole("radio", { name }).click();
-}
-
 // configure: for scans narrowed to part of the page, e.g. (b) => b.include("header").
 export async function assertNoAccessibilityViolations(
   page: Page,
