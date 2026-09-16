@@ -19,11 +19,15 @@ test.describe("article page", () => {
   test("heading tree is exactly one h1, then h2s and h3s", async ({ page }) => {
     await page.goto(`/ro/stiri/${SLUG}`);
 
-    const levels = await page
+    // One h1 per page, but the tree is read inside the article: the rail's
+    // own h2 sits before the article in the DOM and isn't part of it.
+    await expect(page.getByRole("heading", { level: 1 })).toHaveCount(1);
+
+    const article = page.getByRole("article").filter({ has: page.getByRole("heading", { level: 1 }) });
+    const levels = await article
       .locator("h1, h2, h3, h4, h5, h6")
       .evaluateAll((headings) => headings.map((h) => Number(h.tagName[1])));
 
-    expect(levels.filter((level) => level === 1)).toHaveLength(1);
     expect(levels[0]).toBe(1);
     expect(levels.every((level) => level <= 3)).toBe(true);
   });

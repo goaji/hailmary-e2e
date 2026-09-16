@@ -80,15 +80,19 @@ test.describe("degraded path — empty store", () => {
   test.beforeEach(() => clearStore());
   test.afterEach(() => clearStore());
 
-  test("renders the fixture schedule with the degraded notice", async ({ page }) => {
+  // getSchedule() returns no games at all for an empty store, so there is no
+  // table to degrade — the notice needs synced games plus a failed poll.
+  test("renders the empty message and no table", async ({ page }) => {
     await page.goto("/ro/program");
 
-    await expect(page.getByText(ro.schedulePage.liveUnavailableNotice)).toBeVisible();
-    const table = page.getByRole("table");
-    await expect(table).toBeVisible();
-    await expect(table.getByRole("row", { name: /49ers/ })).toBeVisible();
-    await expect(table.getByRole("row", { name: /Ravens/ })).toBeVisible();
+    await expect(page.getByText(ro.schedulePage.empty)).toBeVisible();
+    await expect(page.getByRole("table")).toHaveCount(0);
   });
+});
+
+test.describe("week selector and table structure", () => {
+  test.beforeEach(() => writeStore([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
+  test.afterEach(() => clearStore());
 
   test("kickoff times render in Bucharest local time under a foreign browser timezone", async ({
     browser,
@@ -99,17 +103,12 @@ test.describe("degraded path — empty store", () => {
     const page = await context.newPage();
     await page.goto("/ro/program");
 
-    // Matches formatKickoff.test.ts's known conversion for this exact
-    // fixture kickoff (2026-09-13T17:00:00Z -> 20:00 Bucharest, UTC+3 in September).
+    // FINAL_GAME_A's kickoff, per formatKickoff.test.ts's known conversion
+    // (2026-09-13T17:00:00Z -> 20:00 Bucharest, UTC+3 in September).
     await expect(page.getByRole("table").getByText("dum. 20:00")).toBeVisible();
 
     await context.close();
   });
-});
-
-test.describe("week selector and table structure", () => {
-  test.beforeEach(() => writeStore([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
-  test.afterEach(() => clearStore());
 
   test("week links change the URL and the rendered week; back button works", async ({ page }) => {
     await page.goto("/ro/program");
@@ -257,13 +256,17 @@ test.describe("live score polling", () => {
 
 test.describe("no-JS", () => {
   test.use({ javaScriptEnabled: false });
+  // One game only: it's then the default week's single row, whatever
+  // getCurrentWeek() picks.
+  test.beforeEach(() => writeStore([FINAL_GAME_A]));
+  test.afterEach(() => clearStore());
 
   test("schedule still renders correctly without JavaScript", async ({ page }) => {
     await page.goto("/ro/program");
 
     const table = page.getByRole("table");
     await expect(table).toBeVisible();
-    await expect(table.getByRole("row", { name: /49ers/ })).toBeVisible();
+    await expect(table.getByRole("row", { name: /Eagles/ })).toBeVisible();
   });
 });
 

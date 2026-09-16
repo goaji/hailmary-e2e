@@ -16,10 +16,19 @@ test.describe("sitemap", () => {
     // Sitemap entries are absolute production URLs (SITE_URL) — only the
     // path is meaningful here, since this suite runs against the dev
     // server's baseURL, not the real host.
-    for (const loc of locs) {
-      const pathname = new URL(loc).pathname;
-      const response = await request.get(pathname);
-      expect(response.status(), `${pathname} should return 200`).toBe(200);
+    const paths = locs.map((loc) => new URL(loc).pathname);
+
+    // In batches: 133 sequential requests outrun the 30s test timeout when
+    // the rest of the suite is loading the same dev server.
+    const BATCH_SIZE = 10;
+    for (let start = 0; start < paths.length; start += BATCH_SIZE) {
+      const batch = paths.slice(start, start + BATCH_SIZE);
+      const statuses = await Promise.all(
+        batch.map(async (pathname) => ({ pathname, status: (await request.get(pathname)).status() })),
+      );
+      for (const { pathname, status } of statuses) {
+        expect(status, `${pathname} should return 200`).toBe(200);
+      }
     }
   });
 
