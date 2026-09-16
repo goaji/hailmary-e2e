@@ -9,6 +9,8 @@ export class SchedulePage {
   readonly scrollRegion;
   readonly liveBadge;
   readonly emptyMessage;
+  readonly emptyTitle;
+  readonly liveUnavailableNotice;
   // Screenshot mask only.
   readonly updatedAt;
 
@@ -20,6 +22,8 @@ export class SchedulePage {
     this.scrollRegion = page.getByRole("region", { name: messages.scheduleTable.scrollLabel });
     this.liveBadge = this.table.getByText(messages.liveScoreBadge.live);
     this.emptyMessage = page.getByText(messages.schedulePage.empty);
+    this.emptyTitle = page.getByRole("heading", { level: 1, name: messages.schedulePage.title, exact: true });
+    this.liveUnavailableNotice = page.getByText(messages.schedulePage.liveUnavailableNotice);
     this.updatedAt = page.getByTestId("schedule-updated-at");
   }
 

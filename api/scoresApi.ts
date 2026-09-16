@@ -1,4 +1,4 @@
-import { expect, type APIRequestContext } from "@playwright/test";
+import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import type { Game } from "@hailmary/shared";
 
 // The deployed target shares no filesystem with this suite, so the score
@@ -17,4 +17,9 @@ export async function seedScores(request: APIRequestContext, games: Game[]) {
 export async function clearScores(request: APIRequestContext) {
   const response = await request.delete(SEED_PATH, { headers: authHeaders() });
   expect(response.status(), "seed-scores DELETE").toBe(200);
+}
+
+// Makes the browser's score polling fail; the server-rendered schedule is untouched.
+export async function failScoresRequests(page: Page): Promise<void> {
+  await page.route("**/api/scores", (route) => route.fulfill({ status: 500 }));
 }

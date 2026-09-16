@@ -3,7 +3,7 @@ import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
 import { test, expect } from "../../fixtures/seededScheduleTest";
-import { clearScores } from "../../api/scoresApi";
+import { clearScores, failScoresRequests } from "../../api/scoresApi";
 import { SchedulePage } from "../../pageObjects/SchedulePage";
 import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
 
@@ -60,14 +60,39 @@ const WEEK3_GAME: Game = {
   status: "scheduled",
 };
 
+const WEEK3_LATE_GAME: Game = {
+  id: "w3-lar-chi",
+  homeTeamId: "lar",
+  awayTeamId: "chi",
+  kickoff: "2026-09-21T00:15:00Z",
+  season: 2026,
+  week: 3,
+  status: "scheduled",
+};
+
+const POSTPONED_GAME: Game = {
+  id: "w2-gb-dal",
+  homeTeamId: "gb",
+  awayTeamId: "dal",
+  kickoff: "2026-09-14T17:00:00Z",
+  season: 2026,
+  week: 2,
+  status: "postponed",
+};
+
+function teamName(slug: string): string {
+  return getTeam(slug).name;
+}
+
 test.describe("degraded path — empty store", () => {
   test.beforeEach(({ request }) => clearScores(request));
 
   // getSchedule() returns no games at all for an empty store, so there is no
   // table to degrade — the notice needs synced games plus a failed poll.
-  test("renders the empty message and no table", async ({ schedulePage }) => {
+  test("renders the page title, the empty message and no table", async ({ schedulePage }) => {
     await schedulePage.goto();
 
+    await expect(schedulePage.emptyTitle).toBeVisible();
     await expect(schedulePage.emptyMessage).toBeVisible();
     await expect(schedulePage.table).toHaveCount(0);
   });
@@ -162,6 +187,88 @@ test.describe("week selector and table structure", () => {
     for (const term of ["spread", "favorit", "underdog", "linie", "over/under"]) {
       expect(bodyText.toLowerCase()).not.toContain(term);
     }
+  });
+});
+
+test.describe("game rows", () => {
+  test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, POSTPONED_GAME, FINAL_GAME_A, WEEK3_GAME]));
+
+  test("a live game shows its quarter and clock", async ({ schedulePage }) => {
+    await schedulePage.goto();
+
+    const quarterClock = ro.liveScoreBadge.quarterClock
+      .replace("{quarter}", String(LIVE_GAME.quarter))
+      .replace("{clock}", LIVE_GAME.clock ?? "");
+    await expect(schedulePage.row(teamName(LIVE_GAME.homeTeamId))).toContainText(quarterClock);
+  });
+
+  test("a scheduled game shows no score and says it hasn't started", async ({ schedulePage }) => {
+    await schedulePage.goto();
+    await schedulePage.selectWeek(WEEK3_GAME.week);
+
+    const row = schedulePage.row(teamName(WEEK3_GAME.homeTeamId));
+    await expect(row).toContainText(ro.gameRow.notStarted);
+    await expect(row).not.toContainText(/\d+–\d+/);
+  });
+
+  test("a postponed game says so instead of a score", async ({ schedulePage }) => {
+    await schedulePage.goto();
+
+    const row = schedulePage.row(teamName(POSTPONED_GAME.homeTeamId));
+    await expect(row).toContainText(ro.gameRow.postponed);
+    await expect(row).not.toContainText(/\d+–\d+/);
+  });
+});
+
+test.describe("live scores unavailable", () => {
+  test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, FINAL_GAME_A]));
+
+  test("healthy polling shows no notice", async ({ schedulePage }) => {
+    await schedulePage.goto({ waitUntil: "networkidle" });
+
+    await expect(schedulePage.table).toBeVisible();
+    await expect(schedulePage.liveUnavailableNotice).toBeHidden();
+  });
+
+  test("a failing /api/scores keeps the table and shows the notice", async ({ page, schedulePage }) => {
+    await failScoresRequests(page);
+    await schedulePage.goto();
+
+    await expect(schedulePage.liveUnavailableNotice).toBeVisible();
+    await expect(schedulePage.row(teamName(LIVE_GAME.homeTeamId))).toBeVisible();
+  });
+
+  // The store's updatedAt stays at seed time, so 100s later the data counts as stale (threshold 90s).
+  test("scores older than 90 seconds show the notice", async ({ page, schedulePage }) => {
+    await page.clock.install();
+    await schedulePage.goto({ waitUntil: "networkidle" });
+    await expect(schedulePage.liveUnavailableNotice).toBeHidden();
+
+    await page.clock.runFor(100_000);
+    await expect(schedulePage.liveUnavailableNotice).toBeVisible();
+  });
+});
+
+test.describe("homepage upcoming-games panel", () => {
+  test("lists up to three unfinished games, soonest first", async ({ homePage, seedSchedule }) => {
+    await seedSchedule([WEEK3_LATE_GAME, FINAL_GAME_A, WEEK3_GAME, LIVE_GAME, POSTPONED_GAME]);
+    await homePage.goto();
+
+    const expected = [LIVE_GAME, POSTPONED_GAME, WEEK3_GAME].map(
+      (game) => `${getTeam(game.awayTeamId).shortName} @ ${getTeam(game.homeTeamId).shortName}`,
+    );
+    await expect(homePage.upcomingGamesRows).toHaveCount(expected.length);
+    for (const [index, label] of expected.entries()) {
+      await expect(homePage.upcomingGamesRows.nth(index)).toContainText(label);
+    }
+  });
+
+  test("says so when there are no games", async ({ homePage, seedSchedule }) => {
+    await seedSchedule([]);
+    await homePage.goto();
+
+    await expect(homePage.upcomingGamesEmpty).toBeVisible();
+    await expect(homePage.upcomingGamesRows).toHaveCount(0);
   });
 });
 

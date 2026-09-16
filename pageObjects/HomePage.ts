@@ -16,6 +16,9 @@ export class HomePage {
   readonly cardLinks;
   readonly beginnerGuide;
   readonly beginnerGuideLinks;
+  readonly upcomingGames;
+  readonly upcomingGamesRows;
+  readonly upcomingGamesEmpty;
   readonly originStrip;
   readonly originStripLink;
   readonly originStripDismiss;
@@ -34,6 +37,9 @@ export class HomePage {
     this.cardLinks = this.cardTitles.getByRole("link");
     this.beginnerGuide = page.getByRole("region", { name: messages.sidebar.beginnerGuide.heading, exact: true });
     this.beginnerGuideLinks = this.beginnerGuide.getByRole("link");
+    this.upcomingGames = page.getByRole("region", { name: messages.sidebar.schedule.heading, exact: true });
+    this.upcomingGamesRows = this.upcomingGames.getByRole("listitem");
+    this.upcomingGamesEmpty = this.upcomingGames.getByText(messages.sidebar.schedule.empty);
     // The strip has no role; this is the app's STRIP_ID.
     this.originStrip = page.locator("#origin-strip");
     this.originStripLink = this.originStrip.getByRole("link", { name: messages.originStrip.readMore, exact: true });
