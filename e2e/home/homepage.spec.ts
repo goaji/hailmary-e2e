@@ -1,20 +1,28 @@
-import { test, expect } from "@playwright/test";
 import ro from "@hailmary/shared/messages/ro.json";
-import en from "@hailmary/shared/messages/en.json";
-import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, viewportsWithHeights } from "../../helpers";
+import { articleCount } from "../../api/contentApi";
+import { test, expect } from "../../fixtures/pageTest";
+import {
+  assertNoAccessibilityViolations,
+  columnCount,
+  hasHorizontalOverflow,
+  hrefs,
+  itemsOutsideViewport,
+  reopenBrowser,
+  viewportsWithHeights,
+} from "../../helpers";
+import { HomePage } from "../../pageObjects/HomePage";
 
 const VIEWPORTS = viewportsWithHeights([1200, 1400, 1400]);
 
-test.describe("homepage composition", () => {
-  test("featured article does not appear in the news grid", async ({ page }) => {
-    await page.goto("/ro");
+// The app's GRID_SIZE in app/[locale]/page.tsx.
+const GRID_SIZE = 4;
 
-    const heroTitle = await page.getByRole("heading", { level: 1 }).textContent();
-    const cardTitles = await page
-      .getByRole("region", { name: ro.newsGrid.heading })
-      .getByRole("article")
-      .getByRole("heading")
-      .allTextContents();
+test.describe("homepage composition", () => {
+  test("featured article does not appear in the news grid", async ({ homePage }) => {
+    await homePage.goto();
+
+    const heroTitle = await homePage.heroTitle.textContent();
+    const cardTitles = await homePage.cardTitles.allTextContents();
 
     expect(cardTitles.length).toBeGreaterThan(0);
     expect(cardTitles).not.toContain(heroTitle);
@@ -24,21 +32,16 @@ test.describe("homepage composition", () => {
   // homepage falls back to the ro hero/grid with a translated notice,
   // the same ro-fallback contract an individual article page has.
   test("en locale falls back to the ro hero/grid, with a translated notice", async ({ page }) => {
-    await page.goto("/en");
+    const enHomePage = new HomePage(page, "en");
+    await enHomePage.goto();
 
-    await expect(page.getByText(en.newsIndex.fallbackNotice)).toBeVisible();
+    await expect(enHomePage.fallbackNotice).toBeVisible();
 
     // lang lives on HeroArticle's own container (article.servedLocale), not the h1 itself.
-    const heroLang = await page
-      .getByRole("heading", { level: 1 })
-      .evaluate((el) => el.closest("[lang]")?.getAttribute("lang"));
+    const heroLang = await enHomePage.heroTitle.evaluate((el) => el.closest("[lang]")?.getAttribute("lang"));
     expect(heroLang).toBe("ro");
 
-    const cardTitles = await page
-      .getByRole("region", { name: en.newsGrid.heading })
-      .getByRole("article")
-      .getByRole("heading")
-      .allTextContents();
+    const cardTitles = await enHomePage.cardTitles.allTextContents();
     expect(cardTitles.length).toBeGreaterThan(0);
   });
 
@@ -61,16 +64,76 @@ test.describe("homepage composition", () => {
     expect(levels.slice(1)).not.toContain(1);
   });
 
-  test("dismissing the origin strip survives a reload", async ({ page }) => {
-    await page.goto("/ro");
+  test("dismissing the origin strip survives a reload", async ({ page, homePage }) => {
+    await homePage.goto();
 
-    const dismissButton = page.getByRole("button", { name: ro.originStrip.dismiss });
-    await expect(dismissButton).toBeVisible();
-    await dismissButton.click();
-    await expect(dismissButton).toBeHidden();
+    await expect(homePage.originStripDismiss).toBeVisible();
+    await homePage.dismissOriginStrip();
+    await expect(homePage.originStripDismiss).toBeHidden();
 
     await page.reload();
-    await expect(page.getByRole("button", { name: ro.originStrip.dismiss })).toBeHidden();
+    await expect(homePage.originStripDismiss).toBeHidden();
+  });
+
+  test("dismissing the origin strip survives closing and reopening the browser", async ({
+    page,
+    homePage,
+    browser,
+  }) => {
+    await homePage.goto();
+    await homePage.dismissOriginStrip();
+    await expect(homePage.originStripDismiss).toBeHidden();
+
+    // The strip is server-rendered, so it only stays hidden if the saved dismissal is read back.
+    const reopened = await reopenBrowser(browser, page);
+    const reopenedHomePage = new HomePage(reopened);
+    await reopenedHomePage.goto();
+    await expect(reopenedHomePage.originStripDismiss).toBeHidden();
+
+    await reopened.context().close();
+  });
+
+  test("the news grid shows up to four articles besides the featured one", async ({ homePage, request }) => {
+    await homePage.goto();
+
+    const expected = Math.min(GRID_SIZE, (await articleCount(request, "ro")) - 1);
+    await expect(homePage.cards).toHaveCount(expected);
+  });
+});
+
+test.describe("homepage links", () => {
+  test("the featured title opens its article", async ({ page, homePage }) => {
+    await homePage.goto();
+    const title = (await homePage.heroTitle.textContent()) ?? "";
+
+    await homePage.heroLink.click();
+    await expect(page).toHaveURL(/^[^?#]*\/ro\/stiri\/[^/?#]+$/);
+    await expect(page.getByRole("heading", { level: 1 })).toHaveText(title);
+  });
+
+  // Checked on /ro only: the wiki has no en pages, so /en's wiki links 404 (accepted for now).
+  test("every card, beginner-guide and origin-strip link keeps the locale and resolves", async ({
+    homePage,
+    request,
+  }) => {
+    await homePage.goto();
+    await expect(homePage.cardLinks).toHaveCount(await homePage.cards.count());
+    await expect(homePage.beginnerGuideLinks).not.toHaveCount(0);
+
+    const targets = [
+      ...(await hrefs(homePage.cardLinks)),
+      ...(await hrefs(homePage.beginnerGuideLinks)),
+      ...(await hrefs(homePage.originStripLink)),
+    ];
+    for (const href of new Set(targets)) {
+      expect(href).toMatch(/^\/ro\//);
+      const [path, anchor] = href.split("#");
+      const response = await request.get(path);
+      expect(response.status(), `${href} status`).toBe(200);
+      if (anchor) {
+        expect(await response.text(), `${href} anchor`).toContain(`id="${anchor}"`);
+      }
+    }
   });
 });
 
@@ -90,11 +153,11 @@ test.describe("homepage accessibility", () => {
 });
 
 test.describe("prefers-reduced-motion", () => {
-  test("origin strip phrases render fully visible with no animation", async ({ page }) => {
+  test("origin strip phrases render fully visible with no animation", async ({ page, homePage }) => {
     await page.emulateMedia({ reducedMotion: "reduce" });
-    await page.goto("/ro");
+    await homePage.goto();
 
-    const strip = page.locator("#origin-strip");
+    const strip = homePage.originStrip;
     const phrases = [
       ro.originStrip.phrase1,
       ro.originStrip.phrase2,
@@ -123,22 +186,19 @@ test.describe("homepage layout", () => {
   ];
 
   for (const layout of LAYOUTS) {
-    test(`reflows without horizontal overflow at ${layout.width}px`, async ({ page }) => {
+    test(`reflows without horizontal overflow at ${layout.width}px`, async ({ page, homePage }) => {
       await page.setViewportSize({ width: layout.width, height: layout.height });
-      await page.goto("/ro");
+      await homePage.goto();
 
-      const newsGrid = page.getByRole("region", { name: ro.newsGrid.heading, exact: true });
-      const cards = newsGrid.getByRole("article");
+      const cards = homePage.cards;
       await expect(cards.first()).toBeVisible();
 
       expect(await hasHorizontalOverflow(page)).toBe(false);
       expect(await itemsOutsideViewport(cards)).toEqual([]);
       expect(await columnCount(cards)).toBe(Math.min(layout.newsColumns, await cards.count()));
 
-      const gridBox = await newsGrid.boundingBox();
-      const sidebarBox = await page
-        .getByRole("region", { name: ro.sidebar.beginnerGuide.heading, exact: true })
-        .boundingBox();
+      const gridBox = await homePage.newsGrid.boundingBox();
+      const sidebarBox = await homePage.beginnerGuide.boundingBox();
       if (!gridBox || !sidebarBox) {
         throw new Error("news grid or sidebar is not rendered");
       }

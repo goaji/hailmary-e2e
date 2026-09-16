@@ -109,3 +109,8 @@ export async function headMetadata(page: Page): Promise<HeadMetadata> {
   });
   return metadata;
 }
+
+export async function hrefs(links: Locator): Promise<string[]> {
+  const values = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
+  return values;
+}
