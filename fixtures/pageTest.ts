@@ -1,4 +1,5 @@
 import { test as base } from "@playwright/test";
+import { ExplainerPanel } from "../pageObjects/ExplainerPanel";
 import { NewsIndexPage } from "../pageObjects/NewsIndexPage";
 import { SchedulePage } from "../pageObjects/SchedulePage";
 import { SiteHeader } from "../pageObjects/SiteHeader";
@@ -7,6 +8,7 @@ type PageFixtures = {
   siteHeader: SiteHeader;
   schedulePage: SchedulePage;
   newsIndexPage: NewsIndexPage;
+  explainerPanel: ExplainerPanel;
 };
 
 export const test = base.extend<PageFixtures>({
@@ -18,6 +20,9 @@ export const test = base.extend<PageFixtures>({
   },
   newsIndexPage: async ({ page }, use) => {
     await use(new NewsIndexPage(page));
+  },
+  explainerPanel: async ({ page }, use) => {
+    await use(new ExplainerPanel(page));
   },
 });
 

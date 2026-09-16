@@ -89,11 +89,11 @@ test.describe("wiki pages", () => {
     expect(levels.slice(1).every((level) => level === 2)).toBe(true);
   });
 
-  test("a TermLink opens the explainer panel", async ({ page }) => {
+  test("a TermLink opens the explainer panel", async ({ page, explainerPanel }) => {
     await page.goto("/ro/wiki/the-game/anatomia-unei-faze");
 
-    await page.getByRole("button", { name: "Fumble", exact: true }).click();
-    await expect(page.getByRole("dialog", { name: "Fumble" })).toBeVisible();
+    await explainerPanel.open("Fumble");
+    await expect(explainerPanel.dialogFor("Fumble")).toBeVisible();
   });
 });
 

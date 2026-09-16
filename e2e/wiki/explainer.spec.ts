@@ -31,34 +31,34 @@ test.describe("no-JS TermLink", () => {
 test.describe("explainer panel", () => {
   test("click opens the panel with the right heading, focus moves in, Escape returns focus to the trigger", async ({
     page,
+    explainerPanel,
   }) => {
     await page.goto(ARTICLE_URL);
-    const trigger = page.getByRole("button", { name: "quarterback-ul" });
 
     await test.step("click opens the dialog", async () => {
-      await trigger.click();
-      await expect(page.getByRole("dialog", { name: "Quarterback" })).toBeVisible();
+      await explainerPanel.open("quarterback-ul");
+      await expect(explainerPanel.dialogFor("Quarterback")).toBeVisible();
     });
 
     await test.step("focus moved into the panel", async () => {
-      await expect(page.getByRole("dialog").getByRole("heading", { name: "Quarterback" })).toBeFocused();
+      await expect(explainerPanel.heading("Quarterback")).toBeFocused();
     });
 
     await test.step("Escape closes and returns focus to the trigger", async () => {
       await page.keyboard.press("Escape");
-      await expect(page.getByRole("dialog")).toHaveCount(0);
-      await expect(trigger).toBeFocused();
+      await expect(explainerPanel.dialog).toHaveCount(0);
+      await expect(explainerPanel.trigger("quarterback-ul")).toBeFocused();
     });
   });
 
-  test("a relatedTerms chip swaps content in place without closing the dialog", async ({ page }) => {
+  test("a relatedTerms chip swaps content in place without closing the dialog", async ({ page, explainerPanel }) => {
     await page.goto(ARTICLE_URL);
-    await page.getByRole("button", { name: "quarterback-ul" }).click();
+    await explainerPanel.open("quarterback-ul");
 
-    const dialog = page.getByRole("dialog");
+    const dialog = explainerPanel.dialog;
     await expect(dialog).toHaveCount(1);
 
-    await page.getByRole("button", { name: "Play action" }).click();
+    await explainerPanel.openRelated("Play action");
 
     await expect(dialog).toHaveCount(1); // never removed and re-added, just swapped in place
     await expect(page.getByRole("heading", { name: "Play action" })).toBeVisible();
@@ -66,21 +66,22 @@ test.describe("explainer panel", () => {
 
   test("panel never renders a seeAlso link, even for a term whose glossary entry has one", async ({
     page,
+    explainerPanel,
   }) => {
     await page.goto(ARTICLE_URL);
-    await page.getByRole("button", { name: "quarterback-ul" }).click();
-    await page.getByRole("button", { name: "Play action" }).click(); // play-action has a seeAlso, but only /glosar renders it
+    await explainerPanel.open("quarterback-ul");
+    await explainerPanel.openRelated("Play action"); // play-action has a seeAlso, but only /glosar renders it
 
-    await expect(page.getByRole("dialog").getByRole("link")).toHaveCount(0);
+    await expect(explainerPanel.dialog.getByRole("link")).toHaveCount(0);
   });
 
-  test("desktop: the article column actually shifts when the panel opens", async ({ page }) => {
+  test("desktop: the article column actually shifts when the panel opens", async ({ page, explainerPanel }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(ARTICLE_URL);
     const main = page.getByRole("main");
     const before = await main.boundingBox();
 
-    await page.getByRole("button", { name: "quarterback-ul" }).click();
+    await explainerPanel.open("quarterback-ul");
     await expect
       .poll(async () => (await main.boundingBox())?.width)
       .toBeLessThan(before!.width);
@@ -88,32 +89,30 @@ test.describe("explainer panel", () => {
 });
 
 test.describe("deep link", () => {
-  test("?termen=<slug> opens the panel on load", async ({ page }) => {
+  test("?termen=<slug> opens the panel on load", async ({ page, explainerPanel }) => {
     await page.goto(`${ARTICLE_URL}?termen=play-action`);
-    await expect(page.getByRole("dialog", { name: "Play action" })).toBeVisible();
+    await expect(explainerPanel.dialogFor("Play action")).toBeVisible();
   });
 
-  test("an unknown slug opens nothing and throws no console error", async ({ page }) => {
+  test("an unknown slug opens nothing and throws no console error", async ({ page, explainerPanel }) => {
     const errors: string[] = [];
     page.on("pageerror", (error) => errors.push(error.message));
 
     await page.goto(`${ARTICLE_URL}?termen=not-a-real-term`);
     await page.waitForLoadState("networkidle");
 
-    await expect(page.getByRole("dialog")).toHaveCount(0);
+    await expect(explainerPanel.dialog).toHaveCount(0);
     expect(errors).toEqual([]);
   });
 });
 
 test.describe("hover tooltip", () => {
-  test("appears on hover after a delay, never on keyboard focus", async ({ page }) => {
+  test("appears on hover after a delay, never on keyboard focus", async ({ page, explainerPanel }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(ARTICLE_URL);
-    const trigger = page.getByRole("button", { name: "quarterback-ul" });
+    const trigger = explainerPanel.trigger("quarterback-ul");
     await trigger.waitFor();
-    // The tooltip is aria-hidden on purpose (it duplicates the trigger's name
-    // plus the panel's content), so it has no role — its visible text is the handle.
-    const tooltip = trigger.getByText(QUARTERBACK_SHORT);
+    const tooltip = explainerPanel.tooltip("quarterback-ul", QUARTERBACK_SHORT);
 
     await test.step("hidden at rest, and hides with no delay", async () => {
       await expect(tooltip).toBeHidden();
@@ -146,11 +145,11 @@ test.describe("explainer panel accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
-    test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page, siteHeader }) => {
+    test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page, siteHeader, explainerPanel }) => {
       await page.goto(ARTICLE_URL);
       await siteHeader.selectTeam(team.name);
-      await page.getByRole("button", { name: "quarterback-ul" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      await explainerPanel.open("quarterback-ul");
+      await expect(explainerPanel.dialog).toBeVisible();
 
       await assertNoAccessibilityViolations(page);
     });
@@ -161,7 +160,7 @@ test.describe("explainer panel visual regression", () => {
   const viewports = viewportsWithHeights([800, 900, 900]);
 
   for (const viewport of viewports) {
-    test(`panel open matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
+    test(`panel open matches its ${viewport.label}px baseline screenshot`, async ({ page, explainerPanel }) => {
       await page.setViewportSize({ width: viewport.width, height: viewport.height });
       await page.emulateMedia({ reducedMotion: "reduce" });
       await page.goto(ARTICLE_URL);
@@ -170,8 +169,8 @@ test.describe("explainer panel visual regression", () => {
       // equivalent note in article.spec.ts.
       await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
-      await page.getByRole("button", { name: "quarterback-ul" }).click();
-      await expect(page.getByRole("dialog")).toBeVisible();
+      await explainerPanel.open("quarterback-ul");
+      await expect(explainerPanel.dialog).toBeVisible();
 
       await expect(page).toHaveScreenshot(`explainer-panel-${viewport.label}.png`);
     });
@@ -179,14 +178,13 @@ test.describe("explainer panel visual regression", () => {
 });
 
 test.describe("reduced motion", () => {
-  test("panel still opens and closes correctly, with no slide transform", async ({ page }) => {
+  test("panel still opens and closes correctly, with no slide transform", async ({ page, explainerPanel }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.goto(ARTICLE_URL);
-    const trigger = page.getByRole("button", { name: "quarterback-ul" });
 
-    await trigger.click();
-    const dialog = page.getByRole("dialog");
+    await explainerPanel.open("quarterback-ul");
+    const dialog = explainerPanel.dialog;
     await expect(dialog).toBeVisible();
 
     const transform = await dialog.evaluate((el) => getComputedStyle(el).transform);
