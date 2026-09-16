@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-// configure: for scans narrowed to part of the page, e.g. (b) => b.include('[data-testid="site-header"]').
+// configure: for scans narrowed to part of the page, e.g. (b) => b.include(SITE_HEADER_AXE_SCOPE).
 export async function assertNoAccessibilityViolations(
   page: Page,
   configure: (builder: AxeBuilder) => AxeBuilder = (builder) => builder,
@@ -50,4 +50,14 @@ export async function itemsOutsideViewport(items: Locator) {
       return left < 0 || right > viewportWidth ? [index] : [];
     });
   });
+}
+
+// Tabs forward until the target has focus, so tests don't hard-code the tab order.
+export async function tabTo(page: Page, target: Locator, maxPresses = 30): Promise<void> {
+  for (let i = 0; i < maxPresses; i++) {
+    await page.keyboard.press("Tab");
+    const focused = await target.evaluate((el) => el === document.activeElement);
+    if (focused) return;
+  }
+  throw new Error(`Tab never reached ${target} in ${maxPresses} presses`);
 }

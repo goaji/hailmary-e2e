@@ -1,6 +1,7 @@
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import { test, expect } from "../../fixtures/pageTest";
 import { assertNoAccessibilityViolations, viewportsWithHeights } from "../../helpers";
+import { SITE_HEADER_AXE_SCOPE } from "../../pageObjects/SiteHeader";
 
 test.describe("team color switching", () => {
   test("selecting a team updates --accent-1, persists across reload, and is keyboard-navigable", async ({
@@ -61,7 +62,7 @@ test.describe("header accessibility across team accents", () => {
       // belongs to the homepage's own dedicated a11y test (task 4 step 6),
       // which also needs to handle OriginStrip's phrase animations rather
       // than accidentally scanning them mid-fade.
-      await assertNoAccessibilityViolations(page, (builder) => builder.include('[data-testid="site-header"]'));
+      await assertNoAccessibilityViolations(page, (builder) => builder.include(SITE_HEADER_AXE_SCOPE));
     });
   }
 });
