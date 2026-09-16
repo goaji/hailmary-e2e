@@ -61,7 +61,7 @@ test.describe("header accessibility across team accents", () => {
       // belongs to the homepage's own dedicated a11y test (task 4 step 6),
       // which also needs to handle OriginStrip's phrase animations rather
       // than accidentally scanning them mid-fade.
-      await assertNoAccessibilityViolations(page, (builder) => builder.include("header"));
+      await assertNoAccessibilityViolations(page, (builder) => builder.include('[data-testid="site-header"]'));
     });
   }
 });

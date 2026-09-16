@@ -9,7 +9,7 @@ export class SchedulePage {
   readonly scrollRegion;
   readonly liveBadge;
   readonly emptyMessage;
-  // Screenshot mask only; CSS-module class until we add a hook.
+  // Screenshot mask only.
   readonly updatedAt;
 
   constructor(
@@ -20,7 +20,7 @@ export class SchedulePage {
     this.scrollRegion = page.getByRole("region", { name: messages.scheduleTable.scrollLabel });
     this.liveBadge = this.table.getByText(messages.liveScoreBadge.live);
     this.emptyMessage = page.getByText(messages.schedulePage.empty);
-    this.updatedAt = page.locator('[class*="updatedAt"]');
+    this.updatedAt = page.getByTestId("schedule-updated-at");
   }
 
   title(week: number): Locator {

@@ -1,7 +1,7 @@
 import { expect, type Locator, type Page } from "@playwright/test";
 import AxeBuilder from "@axe-core/playwright";
 
-// configure: for scans narrowed to part of the page, e.g. (b) => b.include("header").
+// configure: for scans narrowed to part of the page, e.g. (b) => b.include('[data-testid="site-header"]').
 export async function assertNoAccessibilityViolations(
   page: Page,
   configure: (builder: AxeBuilder) => AxeBuilder = (builder) => builder,

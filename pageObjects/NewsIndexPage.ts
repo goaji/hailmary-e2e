@@ -12,7 +12,6 @@ export class NewsIndexPage {
   readonly gridView;
   readonly listView;
   readonly cards;
-  // Card titles are the page's h2s; a page-wide query until cards get their own hook.
   readonly cardTitles;
 
   constructor(
@@ -25,7 +24,7 @@ export class NewsIndexPage {
     this.gridView = page.getByRole("radio", { name: messages.newsIndex.gridView });
     this.listView = page.getByRole("radio", { name: messages.newsIndex.listView });
     this.cards = page.getByRole("article");
-    this.cardTitles = page.getByRole("heading", { level: 2 });
+    this.cardTitles = this.cards.getByRole("heading");
   }
 
   async goto(): Promise<void> {

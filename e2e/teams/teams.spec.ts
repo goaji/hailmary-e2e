@@ -59,9 +59,10 @@ test.describe("team detail page", () => {
     await expect(
       page.getByText(ro.teamDetail.news.empty.replace("{team}", "Baltimore Ravens")),
     ).toBeVisible();
-    // ArticleCard titles are h3 — none rendered anywhere on the page confirms
-    // no cards, not just that the empty message happens to also be present.
-    await expect(page.getByRole("heading", { level: 3 })).toHaveCount(0);
+    // No cards in the news section, not just the empty message beside them.
+    const news = page.getByRole("region", { name: ro.teamDetail.news.heading });
+    await expect(news).toBeVisible();
+    await expect(news.getByRole("article")).toHaveCount(0);
   });
 
   test("reader's accent survives navigating to a different team's page", async ({ page, siteHeader }) => {

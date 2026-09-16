@@ -10,7 +10,11 @@ test.describe("homepage composition", () => {
     await page.goto("/ro");
 
     const heroTitle = await page.getByRole("heading", { level: 1 }).textContent();
-    const cardTitles = await page.getByRole("heading", { level: 3 }).allTextContents();
+    const cardTitles = await page
+      .getByRole("region", { name: ro.newsGrid.heading })
+      .getByRole("article")
+      .getByRole("heading")
+      .allTextContents();
 
     expect(cardTitles.length).toBeGreaterThan(0);
     expect(cardTitles).not.toContain(heroTitle);
@@ -30,7 +34,11 @@ test.describe("homepage composition", () => {
       .evaluate((el) => el.closest("[lang]")?.getAttribute("lang"));
     expect(heroLang).toBe("ro");
 
-    const cardTitles = await page.getByRole("heading", { level: 3 }).allTextContents();
+    const cardTitles = await page
+      .getByRole("region", { name: en.newsGrid.heading })
+      .getByRole("article")
+      .getByRole("heading")
+      .allTextContents();
     expect(cardTitles.length).toBeGreaterThan(0);
   });
 
