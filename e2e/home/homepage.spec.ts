@@ -180,9 +180,9 @@ test.describe("prefers-reduced-motion", () => {
 // content, so a screenshot baseline breaks with every published article.
 test.describe("homepage layout", () => {
   const LAYOUTS = [
-    { width: 375, height: 900, newsColumns: 1, sidebarBesideGrid: false },
-    { width: 768, height: 900, newsColumns: 2, sidebarBesideGrid: true },
-    { width: 1440, height: 900, newsColumns: 2, sidebarBesideGrid: true },
+    { width: 375, height: 900, newsColumns: 1, sidebarBesideGrid: false, heroSideBySide: false, cardImagesVisible: false },
+    { width: 768, height: 900, newsColumns: 2, sidebarBesideGrid: true, heroSideBySide: true, cardImagesVisible: true },
+    { width: 1440, height: 900, newsColumns: 2, sidebarBesideGrid: true, heroSideBySide: true, cardImagesVisible: true },
   ];
 
   for (const layout of LAYOUTS) {
@@ -209,6 +209,46 @@ test.describe("homepage layout", () => {
         expect(sidebarBox.y).toBeLessThan(gridBottom);
       } else {
         expect(sidebarBox.y).toBeGreaterThanOrEqual(gridBottom);
+      }
+    });
+
+    test(`${layout.heroSideBySide ? "puts the featured image beside" : "stacks the featured image above"} its title at ${layout.width}px`, async ({
+      page,
+      homePage,
+    }) => {
+      await page.setViewportSize({ width: layout.width, height: layout.height });
+      await homePage.goto();
+
+      const titleBox = await homePage.heroTitle.boundingBox();
+      const imageBox = await homePage.heroImage.boundingBox();
+      if (!titleBox || !imageBox) {
+        throw new Error("featured title or image is not rendered");
+      }
+
+      if (layout.heroSideBySide) {
+        expect(imageBox.x).toBeGreaterThanOrEqual(titleBox.x + titleBox.width);
+        expect(imageBox.y).toBeLessThan(titleBox.y + titleBox.height);
+      } else {
+        // The image comes after the h1 in the DOM but renders above it on mobile.
+        expect(imageBox.y + imageBox.height).toBeLessThanOrEqual(titleBox.y);
+      }
+    });
+
+    test(`${layout.cardImagesVisible ? "shows" : "hides"} card images at ${layout.width}px`, async ({
+      page,
+      homePage,
+    }) => {
+      await page.setViewportSize({ width: layout.width, height: layout.height });
+      await homePage.goto();
+
+      await expect(homePage.cards).not.toHaveCount(0);
+      await expect(homePage.cardImages).toHaveCount(await homePage.cards.count());
+      for (const image of await homePage.cardImages.all()) {
+        if (layout.cardImagesVisible) {
+          await expect(image).toBeVisible();
+        } else {
+          await expect(image).toBeHidden();
+        }
       }
     });
   }
