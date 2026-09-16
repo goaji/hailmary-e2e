@@ -95,3 +95,17 @@ export async function focusRing(target: Locator): Promise<FocusRing> {
   });
   return ring;
 }
+
+export type HeadMetadata = { canonical: string | null; alternates: Record<string, string>; ogImage: string | null };
+
+// Canonical, hreflang links and og:image. Reads the whole document, since Next may stream metadata into <body>.
+export async function headMetadata(page: Page): Promise<HeadMetadata> {
+  const metadata = await page.evaluate(() => {
+    const canonical = document.querySelector('link[rel="canonical"]')?.getAttribute("href") ?? null;
+    const links = Array.from(document.querySelectorAll('link[rel="alternate"][hreflang]'));
+    const alternates = Object.fromEntries(links.map((link) => [link.getAttribute("hreflang") ?? "", link.getAttribute("href") ?? ""]));
+    const ogImage = document.querySelector('meta[property="og:image"]')?.getAttribute("content") ?? null;
+    return { canonical, alternates, ogImage };
+  });
+  return metadata;
+}
