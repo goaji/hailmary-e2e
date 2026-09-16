@@ -74,3 +74,24 @@ export async function reopenBrowser(browser: Browser, page: Page): Promise<Page>
   const reopened = await context.newPage();
   return reopened;
 }
+
+export function hexToRgb(hex: string): string {
+  const [r, g, b] = [1, 3, 5].map((start) => parseInt(hex.slice(start, start + 2), 16));
+  return `rgb(${r}, ${g}, ${b})`;
+}
+
+export type FocusRing = { focusVisible: boolean; style: string; width: string; color: string };
+
+// The outline a focused element draws, plus whether the browser treats the focus as keyboard focus.
+export async function focusRing(target: Locator): Promise<FocusRing> {
+  const ring = await target.evaluate((el) => {
+    const style = getComputedStyle(el);
+    return {
+      focusVisible: el.matches(":focus-visible"),
+      style: style.outlineStyle,
+      width: style.outlineWidth,
+      color: style.outlineColor,
+    };
+  });
+  return ring;
+}
