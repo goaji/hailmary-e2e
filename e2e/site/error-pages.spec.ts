@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "../../helpers";
 
 test.describe("catch-all 404", () => {
   test("a genuinely unmatched ro path renders the styled, localized not-found page", async ({

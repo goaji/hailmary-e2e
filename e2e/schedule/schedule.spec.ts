@@ -2,9 +2,9 @@ import { type Page } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
-import { test, expect } from "../fixtures/seededScheduleTest";
-import { clearScores } from "../api/scoresApi";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { test, expect } from "../../fixtures/seededScheduleTest";
+import { clearScores } from "../../api/scoresApi";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
 
 // Seeding goes through api/scoresApi.ts; the seedSchedule fixture clears
 // the store afterwards. Every test here shares that one store, so the whole

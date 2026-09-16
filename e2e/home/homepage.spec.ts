@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, viewportsWithHeights } from "./helpers";
+import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, viewportsWithHeights } from "../../helpers";
 
 const VIEWPORTS = viewportsWithHeights([1200, 1400, 1400]);
 
@@ -16,7 +16,7 @@ test.describe("homepage composition", () => {
     expect(cardTitles).not.toContain(heroTitle);
   });
 
-  // News is Romanian-only — content/articles/en has no files, so the en
+  // News is Romanian-only for now — content/articles/en has no files, so the en
   // homepage falls back to the ro hero/grid with a translated notice,
   // the same ro-fallback contract an individual article page has.
   test("en locale falls back to the ro hero/grid, with a translated notice", async ({ page }) => {

@@ -2,8 +2,8 @@ import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { articleCount } from "../api/contentApi";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "./helpers";
+import { articleCount } from "../../api/contentApi";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "../../helpers";
 
 test.describe("news index", () => {
   test("renders every ro article as a heading link, newest first", async ({ page, request }) => {

@@ -2,7 +2,7 @@ import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const TITLE_RO = "Chiefs câștigă al treilea titlu consecutiv într-un final de poveste";

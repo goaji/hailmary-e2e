@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "../../helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {

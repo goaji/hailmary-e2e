@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
 
 const WIKI_HUB = "/ro/wiki";
 

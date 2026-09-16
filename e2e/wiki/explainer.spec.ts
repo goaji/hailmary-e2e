@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const ARTICLE_URL = `/ro/stiri/${SLUG}`;

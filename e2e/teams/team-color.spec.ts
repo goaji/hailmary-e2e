@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
-import { assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "./helpers";
+import { assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "../../helpers";
 
 test.describe("team color switching", () => {
   test("selecting a team updates --accent-1, persists across reload, and is keyboard-navigable", async ({
