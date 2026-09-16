@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam } from "../../helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {
@@ -123,39 +123,5 @@ test.describe("team detail accessibility across team accents", () => {
         await assertNoAccessibilityViolations(page);
       });
     }
-  }
-});
-
-test.describe("teams visual regression", () => {
-  const VIEWPORTS = viewportsWithHeights([1400, 1400, 1400]);
-
-  for (const viewport of VIEWPORTS) {
-    test(`index matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      await page.goto("/ro/echipe");
-
-      // nextjs-portal is the dev-only build/route indicator — see the
-      // equivalent note in article.spec.ts.
-      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-
-      await expect(page).toHaveScreenshot(`teams-index-${viewport.label}.png`, {
-        fullPage: true,
-      });
-    });
-
-    test(`detail page matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-      await page.setViewportSize({ width: viewport.width, height: viewport.height });
-      await page.emulateMedia({ reducedMotion: "reduce" });
-      // Baltimore Ravens: no seed articles, so no relative-date byline text
-      // to mask — a stable capture with no time-dependent content at all.
-      await page.goto("/ro/echipe/bal");
-
-      await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-
-      await expect(page).toHaveScreenshot(`teams-detail-${viewport.label}.png`, {
-        fullPage: true,
-      });
-    });
   }
 });

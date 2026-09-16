@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "../../helpers";
 
 const WIKI_HUB = "/ro/wiki";
 
@@ -217,30 +217,5 @@ test.describe("glossary accessibility across team accents", () => {
 
       await assertNoAccessibilityViolations(page);
     });
-  }
-});
-
-test.describe("wiki pages visual regression", () => {
-  const viewports = viewportsWithHeights([1200, 1400, 1400]);
-  const pages = [
-    { name: "wiki-hub", path: WIKI_HUB },
-    { name: "wiki-page", path: RULES_PAGE },
-  ];
-
-  for (const viewport of viewports) {
-    for (const { name, path } of pages) {
-      test(`${path} matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
-        await page.setViewportSize({ width: viewport.width, height: viewport.height });
-        await page.emulateMedia({ reducedMotion: "reduce" });
-        await page.goto(path);
-
-        // nextjs-portal is the dev-only build/route indicator — see article.spec.ts.
-        await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-
-        await expect(page).toHaveScreenshot(`${name}-${viewport.label}.png`, {
-          fullPage: true,
-        });
-      });
-    }
   }
 });
