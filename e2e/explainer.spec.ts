@@ -1,6 +1,6 @@
 import { test, expect } from "@playwright/test";
-import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
-import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { getTeam } from "@hailmary/shared";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 const SLUG = "chiefs-al-treilea-titlu-consecutiv";
 const ARTICLE_URL = `/ro/stiri/${SLUG}`;
@@ -143,7 +143,7 @@ test.describe("hover tooltip", () => {
 });
 
 test.describe("explainer panel accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`axe has no violations with the panel open, ${team.name} selected`, async ({ page }) => {

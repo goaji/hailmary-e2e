@@ -1,36 +1,15 @@
-import { test, expect, type Page } from "@playwright/test";
-import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
+import { type Page } from "@playwright/test";
+import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import type { Game } from "@hailmary/shared";
-import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { test, expect } from "../fixtures/seededScheduleTest";
+import { clearScores } from "../api/scoresApi";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
-// No shared filesystem with the deployed target, so the store is seeded
-// over HTTP via /api/test/seed-scores rather than written to disk
-// directly — see E2E-SPLIT-PLAN.md. Real requests hit the same store, so
-// the whole file runs serially (not just each describe block) to keep
-// two tests here from racing on it. Other spec files never touch the
-// store, so they're unaffected either way.
+// Seeding goes through api/scoresApi.ts; the seedSchedule fixture clears
+// the store afterwards. Every test here shares that one store, so the whole
+// file runs serially. Other spec files never touch it.
 test.describe.configure({ mode: "serial" });
-
-const SEED_URL = `${process.env.E2E_BASE_URL}/api/test/seed-scores`;
-const SEED_HEADERS = {
-  "content-type": "application/json",
-  "x-e2e-secret": process.env.E2E_TEST_SECRET ?? "",
-};
-
-async function writeStore(games: Game[]) {
-  const res = await fetch(SEED_URL, { method: "POST", headers: SEED_HEADERS, body: JSON.stringify({ games }) });
-  if (!res.ok) {
-    throw new Error(`seed-scores POST failed: ${res.status}`);
-  }
-}
-
-async function clearStore() {
-  const res = await fetch(SEED_URL, { method: "DELETE", headers: SEED_HEADERS });
-  if (!res.ok) {
-    throw new Error(`seed-scores DELETE failed: ${res.status}`);
-  }
-}
 
 const LIVE_GAME: Game = {
   id: "w2-kc-buf",
@@ -77,8 +56,7 @@ const WEEK3_GAME: Game = {
 };
 
 test.describe("degraded path — empty store", () => {
-  test.beforeEach(() => clearStore());
-  test.afterEach(() => clearStore());
+  test.beforeEach(({ request }) => clearScores(request));
 
   // getSchedule() returns no games at all for an empty store, so there is no
   // table to degrade — the notice needs synced games plus a failed poll.
@@ -91,8 +69,7 @@ test.describe("degraded path — empty store", () => {
 });
 
 test.describe("week selector and table structure", () => {
-  test.beforeEach(() => writeStore([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
-  test.afterEach(() => clearStore());
+  test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
 
   test("kickoff times render in Bucharest local time under a foreign browser timezone", async ({
     browser,
@@ -196,8 +173,6 @@ test.describe("week selector and table structure", () => {
 test.describe("live score polling", () => {
   const POLL_INTERVAL_MS = 15_000;
 
-  test.afterEach(() => clearStore());
-
   function trackScoreRequests(page: Page) {
     const requests: string[] = [];
     page.on("request", (req) => {
@@ -222,8 +197,8 @@ test.describe("live score polling", () => {
       .toBe(expected);
   }
 
-  test("a live game keeps polling every 15s", async ({ page }) => {
-    await writeStore([LIVE_GAME, FINAL_GAME_A]);
+  test("a live game keeps polling every 15s", async ({ page, seedSchedule }) => {
+    await seedSchedule([LIVE_GAME, FINAL_GAME_A]);
 
     const scoreRequests = trackScoreRequests(page);
     await page.clock.install();
@@ -241,8 +216,8 @@ test.describe("live score polling", () => {
 
   // The fetch on mount is deliberate: /program is ISR-cached, so a copy
   // rendered before kickoff only learns a game went live by asking once.
-  test("a page with no live games stops after the fetch on mount", async ({ page }) => {
-    await writeStore([FINAL_GAME_A, FINAL_GAME_B]);
+  test("a page with no live games stops after the fetch on mount", async ({ page, seedSchedule }) => {
+    await seedSchedule([FINAL_GAME_A, FINAL_GAME_B]);
 
     const scoreRequests = trackScoreRequests(page);
     await page.clock.install();
@@ -258,8 +233,7 @@ test.describe("no-JS", () => {
   test.use({ javaScriptEnabled: false });
   // One game only: it's then the default week's single row, whatever
   // getCurrentWeek() picks.
-  test.beforeEach(() => writeStore([FINAL_GAME_A]));
-  test.afterEach(() => clearStore());
+  test.beforeEach(({ seedSchedule }) => seedSchedule([FINAL_GAME_A]));
 
   test("schedule still renders correctly without JavaScript", async ({ page }) => {
     await page.goto("/ro/program");
@@ -271,10 +245,9 @@ test.describe("no-JS", () => {
 });
 
 test.describe("schedule accessibility across team accents", () => {
-  test.beforeAll(() => writeStore([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
-  test.afterAll(() => clearStore());
+  test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, FINAL_GAME_A, WEEK3_GAME]));
 
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`axe clean on /program with ${team.name} selected`, async ({ page }) => {
@@ -291,8 +264,7 @@ test.describe("schedule visual regression", () => {
   const VIEWPORTS = viewportsWithHeights([1000, 900, 900]);
 
   test.describe("with a live game", () => {
-    test.beforeAll(() => writeStore([LIVE_GAME, FINAL_GAME_A]));
-    test.afterAll(() => clearStore());
+    test.beforeEach(({ seedSchedule }) => seedSchedule([LIVE_GAME, FINAL_GAME_A]));
 
     for (const viewport of VIEWPORTS) {
       test(`matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
@@ -311,8 +283,7 @@ test.describe("schedule visual regression", () => {
   });
 
   test.describe("with all finals", () => {
-    test.beforeAll(() => writeStore([FINAL_GAME_A, FINAL_GAME_B]));
-    test.afterAll(() => clearStore());
+    test.beforeEach(({ seedSchedule }) => seedSchedule([FINAL_GAME_A, FINAL_GAME_B]));
 
     for (const viewport of VIEWPORTS) {
       test(`matches its ${viewport.label}px baseline screenshot`, async ({ page }) => {
@@ -351,9 +322,9 @@ test.describe("cron route", () => {
 
   test.describe("authenticated", () => {
     // Each call runs a real sync — don't leave its games in the store.
-    test.afterEach(async () => {
+    test.afterEach(async ({ request }) => {
       if (secret) {
-        await clearStore();
+        await clearScores(request);
       }
     });
 

@@ -1,7 +1,7 @@
 import { test, expect, type Locator, type Page } from "@playwright/test";
-import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
+import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam, viewportsWithHeights } from "./helpers";
 
 const WIKI_HUB = "/ro/wiki";
 
@@ -193,7 +193,7 @@ test.describe("glossary seeAlso links", () => {
 });
 
 test.describe("wiki pages accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     for (const path of [WIKI_HUB, RULES_PAGE]) {
@@ -208,7 +208,7 @@ test.describe("wiki pages accessibility across team accents", () => {
 });
 
 test.describe("glossary accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`/glosar axe clean with ${team.name} selected`, async ({ page }) => {

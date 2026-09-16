@@ -20,6 +20,11 @@ export async function assertNoAccessibilityViolations(
   expect(results.violations).toEqual([]);
 }
 
+// The two ends of PICKER_TEAMS' accent luminance (Packers gold 0.55,
+// Patriots red 0.22) — where an accent-contrast bug shows first. Pages whose
+// own risk is accent contrast (header, team identity band) still scan all six.
+export const ACCENT_EXTREME_TEAMS = ["gb", "ne"] as const;
+
 export const VIEWPORT_WIDTHS = [375, 768, 1440] as const;
 
 // Heights stay per-spec: they set the capture area of existing baselines.

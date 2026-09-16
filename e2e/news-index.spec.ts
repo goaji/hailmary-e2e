@@ -1,31 +1,18 @@
 import { test, expect } from "@playwright/test";
-import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
+import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "./helpers";
-
-// No shared filesystem with the deployed target to count content/articles/ro
-// directly, so this asks the app instead — see E2E-SPLIT-PLAN.md.
-let RO_ARTICLE_COUNT = 0;
+import { articleCount } from "../api/contentApi";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, selectTeam } from "./helpers";
 
 test.describe("news index", () => {
-  test.beforeAll(async () => {
-    const res = await fetch(`${process.env.E2E_BASE_URL}/api/test/article-count?locale=ro`, {
-      headers: { "x-e2e-secret": process.env.E2E_TEST_SECRET ?? "" },
-    });
-    if (!res.ok) {
-      throw new Error(`article-count fetch failed: ${res.status}`);
-    }
-    ({ count: RO_ARTICLE_COUNT } = await res.json());
-  });
-
-  test("renders every ro article as a heading link, newest first", async ({ page }) => {
+  test("renders every ro article as a heading link, newest first", async ({ page, request }) => {
     await page.goto("/ro/stiri");
 
     await expect(page.getByRole("heading", { level: 1, name: ro.newsIndex.title })).toBeVisible();
 
     const titles = await page.getByRole("heading", { level: 2 }).allTextContents();
-    expect(titles).toHaveLength(RO_ARTICLE_COUNT);
+    expect(titles).toHaveLength(await articleCount(request, "ro"));
     expect(new Set(titles).size).toBe(titles.length); // no duplicate cards
 
     // Newest first, compared as timestamps: publishedAt mixes date-only
@@ -56,14 +43,17 @@ test.describe("news index", () => {
   // News is Romanian-only — content/articles/en has no files, so /en/stiri
   // falls back to the ro list with a translated notice, the same
   // ro-fallback contract an individual article page already has.
-  test("en locale falls back to the ro articles, with a translated notice", async ({ page }) => {
+  test("en locale falls back to the ro articles, with a translated notice", async ({
+    page,
+    request,
+  }) => {
     await page.goto("/en/stiri");
 
     await expect(page.getByRole("heading", { level: 1, name: en.newsIndex.title })).toBeVisible();
     await expect(page.getByText(en.newsIndex.fallbackNotice)).toBeVisible();
 
     const titles = await page.getByRole("heading", { level: 2 }).allTextContents();
-    expect(titles).toHaveLength(RO_ARTICLE_COUNT);
+    expect(titles).toHaveLength(await articleCount(request, "ro"));
   });
 });
 
@@ -126,7 +116,7 @@ test.describe("news index view toggle", () => {
 });
 
 test.describe("news index accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`axe clean on /stiri with ${team.name} selected`, async ({ page }) => {

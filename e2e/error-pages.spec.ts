@@ -1,8 +1,8 @@
 import { test, expect } from "@playwright/test";
-import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
+import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import en from "@hailmary/shared/messages/en.json";
-import { assertNoAccessibilityViolations, selectTeam } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, selectTeam } from "./helpers";
 
 test.describe("catch-all 404", () => {
   test("a genuinely unmatched ro path renders the styled, localized not-found page", async ({
@@ -33,7 +33,7 @@ test.describe("catch-all 404", () => {
 });
 
 test.describe("catch-all 404 accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`axe clean with ${team.name} selected`, async ({ page }) => {

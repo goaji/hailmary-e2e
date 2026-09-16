@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
-import { assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "./helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, getAccent1, selectTeam, viewportsWithHeights } from "./helpers";
 
 test.describe("teams index", () => {
   test("renders all 32 teams, reachable by role and name", async ({ page }) => {
@@ -87,7 +87,7 @@ test.describe("team logos", () => {
 });
 
 test.describe("teams index accessibility across team accents", () => {
-  for (const slug of PICKER_TEAMS) {
+  for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
 
     test(`axe clean on /echipe with ${team.name} selected`, async ({ page }) => {

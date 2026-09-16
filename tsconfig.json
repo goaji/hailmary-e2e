@@ -10,5 +10,12 @@
     "esModuleInterop": true,
     "skipLibCheck": true
   },
-  "include": ["e2e/**/*.ts", "e2e-smoke/**/*.ts", "playwright.config.ts", "playwright.smoke.config.ts"]
+  "include": [
+    "e2e/**/*.ts",
+    "e2e-smoke/**/*.ts",
+    "api/**/*.ts",
+    "fixtures/**/*.ts",
+    "playwright.config.ts",
+    "playwright.smoke.config.ts"
+  ]
 }
