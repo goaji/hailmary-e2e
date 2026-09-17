@@ -1,6 +1,19 @@
 import type { Locator, Page, Response } from "@playwright/test";
 import ro from "@hailmary/shared/messages/ro.json";
 
+export const DIAGRAM_KEYS = [
+  "fieldDiagram",
+  "downSystemDiagram",
+  "offensivePositionsDiagram",
+  "defensivePositionsDiagram",
+  "routeTreeDiagram",
+  "situationalFootballDiagram",
+  "boxScoreDiagram",
+  "statLinesDiagram",
+] as const;
+
+export type DiagramKey = (typeof DIAGRAM_KEYS)[number];
+
 export class WikiPage {
   readonly notFoundTitle;
   readonly breadcrumbs;
@@ -31,6 +44,11 @@ export class WikiPage {
   async goto(path: string): Promise<Response | null> {
     const response = await this.page.goto(path);
     return response;
+  }
+
+  // Each diagram is a <section> named by its widgetLabel message.
+  diagram(key: DiagramKey): Locator {
+    return this.page.getByRole("region", { name: ro[key].widgetLabel, exact: true });
   }
 
   // The rail marks the current page with aria-current; getByRole can't filter on it.
