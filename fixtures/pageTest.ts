@@ -5,6 +5,8 @@ import { NewsIndexPage } from "../pageObjects/NewsIndexPage";
 import { SchedulePage } from "../pageObjects/SchedulePage";
 import { SiteFooter } from "../pageObjects/SiteFooter";
 import { SiteHeader } from "../pageObjects/SiteHeader";
+import { WikiHubPage } from "../pageObjects/WikiHubPage";
+import { WikiPage } from "../pageObjects/WikiPage";
 
 type PageFixtures = {
   siteHeader: SiteHeader;
@@ -13,6 +15,8 @@ type PageFixtures = {
   schedulePage: SchedulePage;
   newsIndexPage: NewsIndexPage;
   explainerPanel: ExplainerPanel;
+  wikiHubPage: WikiHubPage;
+  wikiPage: WikiPage;
 };
 
 export const test = base.extend<PageFixtures>({
@@ -33,6 +37,12 @@ export const test = base.extend<PageFixtures>({
   },
   explainerPanel: async ({ page }, use) => {
     await use(new ExplainerPanel(page));
+  },
+  wikiHubPage: async ({ page }, use) => {
+    await use(new WikiHubPage(page));
+  },
+  wikiPage: async ({ page }, use) => {
+    await use(new WikiPage(page));
   },
 });
 
