@@ -25,6 +25,8 @@ export class WikiPage {
   readonly readingThread;
   readonly prevLink;
   readonly nextLink;
+  readonly mobileRail;
+  readonly mobileRailSummary;
 
   // The wiki has Romanian pages only.
   constructor(private readonly page: Page) {
@@ -39,6 +41,9 @@ export class WikiPage {
     this.readingThread = page.getByRole("navigation", { name: ro.wikiPage.readingThreadNavLabel });
     this.prevLink = this.readingThread.getByRole("link").filter({ hasText: ro.wikiPage.prev });
     this.nextLink = this.readingThread.getByRole("link").filter({ hasText: ro.wikiPage.next });
+    // <details> maps to role=group; its <summary> text is what identifies it.
+    this.mobileRail = page.getByRole("group").filter({ has: page.getByText(ro.wikiRail.mobileLabel) });
+    this.mobileRailSummary = this.mobileRail.getByText(ro.wikiRail.mobileLabel);
   }
 
   async goto(path: string): Promise<Response | null> {
@@ -59,6 +64,15 @@ export class WikiPage {
   async sectionTitles(): Promise<string[]> {
     const titles = await this.page.getByRole("main").getByRole("heading", { level: 2 }).allTextContents();
     return titles;
+  }
+
+  // A content section, named by its h2; that h2's id is the anchor its TOC and seeAlso links use.
+  section(title: string): Locator {
+    return this.page.getByRole("region", { name: title, exact: true });
+  }
+
+  tocLink(title: string): Locator {
+    return this.rail.getByRole("link", { name: title, exact: true });
   }
 
   // Each diagram is a <section> named by its widgetLabel message.

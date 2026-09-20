@@ -53,18 +53,17 @@ test.describe("wiki pages", () => {
     });
   }
 
-  test("every frontmatter section renders as a region named by its h2, in order", async ({ page }) => {
+  test("every frontmatter section renders as a region named by its h2, in order", async ({ page, wikiPage }) => {
     await page.goto(RULES_PAGE);
 
     for (const section of RULES_SECTIONS) {
-      const region = page.getByRole("region", { name: section.title, exact: true });
+      const region = wikiPage.section(section.title);
       await expect(region).toBeVisible();
       // The h2's id is both the aria-labelledby target and the TOC/seeAlso anchor.
       await expect(region.getByRole("heading", { level: 2 })).toHaveAttribute("id", section.id);
     }
 
-    const titles = await page.getByRole("main").getByRole("heading", { level: 2 }).allTextContents();
-    expect(titles).toEqual(RULES_SECTIONS.map((section) => section.title));
+    expect(await wikiPage.sectionTitles()).toEqual(RULES_SECTIONS.map((section) => section.title));
   });
 
   test("heading tree is one h1 then h2s", async ({ page }) => {
@@ -88,35 +87,28 @@ test.describe("wiki pages", () => {
 });
 
 test.describe("wiki rail table of contents", () => {
-  test("desktop TOC link scrolls to the section and sets aria-current", async ({ page }) => {
+  test("desktop TOC link scrolls to the section and sets aria-current", async ({ page, wikiPage }) => {
     await page.setViewportSize({ width: 1440, height: 900 });
     await page.goto(RULES_PAGE);
 
-    const nav = page.getByRole("navigation", { name: ro.wikiRail.label });
-    const link = nav.getByRole("link", { name: TOC_TARGET.title, exact: true });
+    const link = wikiPage.tocLink(TOC_TARGET.title);
 
     await link.click();
     await expect(page).toHaveURL((url) => url.hash === `#${TOC_TARGET.id}`);
-    await expect(
-      page.getByRole("region", { name: TOC_TARGET.title, exact: true }).getByRole("heading", { level: 2 }),
-    ).toBeInViewport();
+    await expect(wikiPage.section(TOC_TARGET.title).getByRole("heading", { level: 2 })).toBeInViewport();
     await expect(link).toHaveAttribute("aria-current", "location");
   });
 
-  test("below lg, the rail is a working, keyboard-operable <details>", async ({ page }) => {
+  test("below lg, the rail is a working, keyboard-operable <details>", async ({ page, wikiPage }) => {
     await page.setViewportSize({ width: 768, height: 1024 });
     await page.goto(RULES_PAGE);
 
-    // <details> maps to role=group; its <summary> text is what identifies it.
-    const details = page.getByRole("group").filter({ has: page.getByText(ro.wikiRail.mobileLabel) });
-    const tocLink = details
-      .getByRole("navigation", { name: ro.wikiRail.label })
-      .getByRole("link", { name: TOC_TARGET.title, exact: true });
+    const tocLink = wikiPage.mobileRail.getByRole("link", { name: TOC_TARGET.title, exact: true });
 
-    await expect(details).toBeVisible();
+    await expect(wikiPage.mobileRail).toBeVisible();
     await expect(tocLink).toBeHidden();
 
-    await details.getByText(ro.wikiRail.mobileLabel).focus();
+    await wikiPage.mobileRailSummary.focus();
     await page.keyboard.press("Enter");
 
     await expect(tocLink).toBeVisible();
@@ -124,11 +116,11 @@ test.describe("wiki rail table of contents", () => {
 });
 
 test.describe("highlight on arrival", () => {
-  test("arriving at a wiki section anchor highlights that section", async ({ page }) => {
+  test("arriving at a wiki section anchor highlights that section", async ({ page, wikiPage }) => {
     await page.goto(`${RULES_PAGE}#${TOC_TARGET.id}`);
 
-    const target = page.getByRole("region", { name: TOC_TARGET.title, exact: true });
-    const other = page.getByRole("region", { name: RULES_SECTIONS[0].title, exact: true });
+    const target = wikiPage.section(TOC_TARGET.title);
+    const other = wikiPage.section(RULES_SECTIONS[0].title);
     const unhighlighted = await highlightStyle(other);
 
     // Polled: TargetRefresh marks the target in an effect, after hydration.
