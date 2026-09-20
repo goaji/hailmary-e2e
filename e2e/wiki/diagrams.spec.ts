@@ -227,6 +227,23 @@ test.describe("stat lines across team accents", () => {
   }
 });
 
+// The drawings themselves: no DOM assertion describes a field, a route fan or a formation.
+test.describe("diagram visual regression", () => {
+  test.use({ viewport: { width: 1440, height: 900 } });
+
+  for (const key of DIAGRAM_KEYS) {
+    test(`${key} matches its baseline`, async ({ page }) => {
+      // Freezes the box score's ticking play clock and every diagram transition.
+      await page.emulateMedia({ reducedMotion: "reduce" });
+      const diagram = new WikiDiagram(page, key);
+      await diagram.goto();
+      await expect(diagram.region).toBeVisible();
+
+      await expect(diagram.region).toHaveScreenshot(`${key}.png`);
+    });
+  }
+});
+
 test.describe("diagram pages accessibility", () => {
   for (const key of DIAGRAM_KEYS) {
     test(`${key} page is axe clean with the diagram in use`, async ({ page }) => {
