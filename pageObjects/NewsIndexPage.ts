@@ -1,10 +1,5 @@
 import type { Page } from "@playwright/test";
-import ro from "@hailmary/shared/messages/ro.json";
-import en from "@hailmary/shared/messages/en.json";
-
-type Locale = "ro" | "en";
-
-const MESSAGES = { ro, en };
+import { MESSAGES, type Locale } from "./messages";
 
 export class NewsIndexPage {
   readonly title;

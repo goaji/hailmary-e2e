@@ -1,8 +1,8 @@
-import type { Locator, Page } from "@playwright/test";
+import type { Locator } from "@playwright/test";
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import { test, expect } from "../../fixtures/pageTest";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, hrefs } from "../../helpers";
 
 const WIKI_HUB = "/ro/wiki";
 
@@ -34,16 +34,6 @@ async function highlightStyle(locator: Locator) {
       boxShadow: cs.boxShadow,
     };
   });
-}
-
-// Needs the desktop rail: below lg it's a collapsed <details>, so its links are hidden.
-async function glossaryLetterHrefs(page: Page): Promise<string[]> {
-  await page.goto("/ro/glosar"); // redirects to the first letter
-  // The current letter also lists its terms as links; only letter links have single-letter names.
-  return page
-    .getByRole("navigation", { name: ro.glossary.railLabel })
-    .getByRole("link", { name: /^[A-Z]$/ })
-    .evaluateAll((links) => links.map((link) => link.getAttribute("href")!));
 }
 
 test.describe("wiki pages", () => {
@@ -161,8 +151,10 @@ test.describe("glossary seeAlso links", () => {
   test.use({ viewport: { width: 1440, height: 900 } });
 
   // en entries carry no seeAlso: every target is a wiki page, and the wiki is ro-only.
-  test("every seeAlso across the /ro glossary letter pages resolves", async ({ page }) => {
-    const letterHrefs = await glossaryLetterHrefs(page);
+  test("every seeAlso across the /ro glossary letter pages resolves", async ({ page, glossaryPage }) => {
+    // Needs the desktop rail: below lg it's a collapsed <details>, so its links are hidden.
+    await glossaryPage.goto();
+    const letterHrefs = await hrefs(glossaryPage.letterLinks);
     expect(letterHrefs.length).toBeGreaterThan(0);
 
     const seeAlsoHrefs: string[] = [];

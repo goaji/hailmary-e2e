@@ -1,5 +1,6 @@
 import { test as base } from "@playwright/test";
 import { ExplainerPanel } from "../pageObjects/ExplainerPanel";
+import { GlossaryPage } from "../pageObjects/GlossaryPage";
 import { HomePage } from "../pageObjects/HomePage";
 import { NewsIndexPage } from "../pageObjects/NewsIndexPage";
 import { SchedulePage } from "../pageObjects/SchedulePage";
@@ -17,6 +18,7 @@ type PageFixtures = {
   explainerPanel: ExplainerPanel;
   wikiHubPage: WikiHubPage;
   wikiPage: WikiPage;
+  glossaryPage: GlossaryPage;
 };
 
 export const test = base.extend<PageFixtures>({
@@ -43,6 +45,9 @@ export const test = base.extend<PageFixtures>({
   },
   wikiPage: async ({ page }, use) => {
     await use(new WikiPage(page));
+  },
+  glossaryPage: async ({ page }, use) => {
+    await use(new GlossaryPage(page));
   },
 });
 
