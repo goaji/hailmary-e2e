@@ -46,6 +46,19 @@ test.describe("team color switching", () => {
       await expect(eaglesRadio).toHaveAttribute("aria-checked", "false");
       await expect.poll(() => siteHeader.accent1()).toBe(cowboys.accent1);
     });
+
+    await test.step("Home and End jump to the first and last team", async () => {
+      const first = getTeam(PICKER_TEAMS[0]);
+      const last = getTeam(PICKER_TEAMS[PICKER_TEAMS.length - 1]);
+
+      await page.keyboard.press("Home");
+      await expect(siteHeader.teamRadio(first.name)).toBeFocused();
+      await expect.poll(() => siteHeader.accent1()).toBe(first.accent1);
+
+      await page.keyboard.press("End");
+      await expect(siteHeader.teamRadio(last.name)).toBeFocused();
+      await expect.poll(() => siteHeader.accent1()).toBe(last.accent1);
+    });
   });
 
   test("the saved team survives closing and reopening the browser", async ({ page, siteHeader, browser }) => {

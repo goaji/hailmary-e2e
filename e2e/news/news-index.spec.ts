@@ -101,6 +101,16 @@ test.describe("news index view toggle", () => {
       await expect(listRadio).toHaveAttribute("aria-checked", "false");
     });
 
+    await test.step("Home and End jump to the first and last view", async () => {
+      await page.keyboard.press("End");
+      await expect(listRadio).toBeFocused();
+      await expect(listRadio).toHaveAttribute("aria-checked", "true");
+
+      await page.keyboard.press("Home");
+      await expect(gridRadio).toBeFocused();
+      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
+    });
+
     await test.step("clicking 'Grilă' restores side-by-side cards and saves grid", async () => {
       await newsIndexPage.switchToListView();
       await expect.poll(() => newsIndexPage.storedView()).toBe("list");

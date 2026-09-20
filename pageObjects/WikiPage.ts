@@ -46,6 +46,21 @@ export class WikiPage {
     return response;
   }
 
+  // Section headings and the ids their regions point at — both must be unique per page,
+  // or an anchor and its rail link only ever reach the first section of that name.
+  async sectionIds(): Promise<string[]> {
+    const ids = await this.page
+      .getByRole("main")
+      .getByRole("region")
+      .evaluateAll((els) => els.map((el) => el.getAttribute("aria-labelledby") ?? ""));
+    return ids.filter(Boolean);
+  }
+
+  async sectionTitles(): Promise<string[]> {
+    const titles = await this.page.getByRole("main").getByRole("heading", { level: 2 }).allTextContents();
+    return titles;
+  }
+
   // Each diagram is a <section> named by its widgetLabel message.
   diagram(key: DiagramKey): Locator {
     return this.page.getByRole("region", { name: ro[key].widgetLabel, exact: true });

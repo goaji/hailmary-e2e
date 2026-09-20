@@ -27,6 +27,12 @@ test.describe("every wiki page on a phone", () => {
           await expect(page.getByRole("heading", { level: 1 })).toHaveText(current.title);
           expect(await hasHorizontalOverflow(page)).toBe(false);
 
+          const sectionIds = await wikiPage.sectionIds();
+          expect(sectionIds.length, "sections").toBeGreaterThan(0);
+          expect(new Set(sectionIds).size, sectionIds.join(", ")).toBe(sectionIds.length);
+          const sectionTitles = await wikiPage.sectionTitles();
+          expect(new Set(sectionTitles).size, sectionTitles.join(", ")).toBe(sectionTitles.length);
+
           for (const key of DIAGRAM_KEYS) {
             const expected = DIAGRAM_PAGES[key] === current.path ? 1 : 0;
             await expect(wikiPage.diagram(key), key).toHaveCount(expected);

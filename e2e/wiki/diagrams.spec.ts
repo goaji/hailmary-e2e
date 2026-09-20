@@ -1,3 +1,4 @@
+import { PICKER_TEAMS, getTeam } from "@hailmary/shared";
 import { test, expect } from "../../fixtures/pageTest";
 import { assertNoAccessibilityViolations } from "../../helpers";
 import { WikiDiagram } from "../../pageObjects/WikiDiagram";
@@ -162,6 +163,66 @@ test("situationalFootballDiagram: choosing a scenario tab swaps the panel", asyn
       await expect(diagram.region.getByRole("tab", { selected: true })).toHaveCount(1);
       await expect(diagram.tabpanel).toHaveAccessibleName(m[`${scenario}Pill`]);
       await expect(diagram.tabpanel).toContainText(m[`${scenario}Summary`]);
+    });
+  }
+});
+
+test("situationalFootballDiagram: the tablist is one tab stop, driven by the arrow keys", async ({ page }) => {
+  const diagram = new WikiDiagram(page, "situationalFootballDiagram");
+  const m = diagram.messages;
+  const scenarios = ["twoMinute", "fourthDown", "redZone", "clockMgmt", "kneelDown"];
+  const tabAt = (scenario: string) => diagram.tab(m[`${scenario}Pill`]);
+  await diagram.goto();
+
+  await test.step("only the selected tab is tabbable", async () => {
+    await expect(tabAt(scenarios[0])).toHaveAttribute("tabindex", "0");
+    for (const scenario of scenarios.slice(1)) {
+      await expect(tabAt(scenario)).toHaveAttribute("tabindex", "-1");
+    }
+  });
+
+  await test.step("ArrowRight moves focus and selection together, wrapping at the end", async () => {
+    await tabAt(scenarios[0]).focus();
+    for (const scenario of [...scenarios.slice(1), scenarios[0]]) {
+      await page.keyboard.press("ArrowRight");
+      await expect(tabAt(scenario)).toBeFocused();
+      await expect(tabAt(scenario)).toHaveAttribute("aria-selected", "true");
+      await expect(diagram.tabpanel).toHaveAccessibleName(m[`${scenario}Pill`]);
+    }
+  });
+
+  await test.step("ArrowLeft wraps back to the last tab", async () => {
+    await page.keyboard.press("ArrowLeft");
+    await expect(tabAt(scenarios[scenarios.length - 1])).toBeFocused();
+  });
+
+  await test.step("End and Home jump to the last and first tabs", async () => {
+    await page.keyboard.press("Home");
+    await expect(tabAt(scenarios[0])).toBeFocused();
+    await page.keyboard.press("End");
+    await expect(tabAt(scenarios[scenarios.length - 1])).toBeFocused();
+    await expect(tabAt(scenarios[scenarios.length - 1])).toHaveAttribute("aria-selected", "true");
+  });
+
+  await test.step("Tab from the tablist lands in the panel", async () => {
+    await page.keyboard.press("Tab");
+    await expect(diagram.tabpanel).toBeFocused();
+  });
+});
+
+// The stat-lines caption takes its colour from the reader's accent, so contrast depends on the team.
+test.describe("stat lines across team accents", () => {
+  for (const slug of PICKER_TEAMS) {
+    const team = getTeam(slug);
+
+    test(`statLinesDiagram page is axe clean with ${team.name} selected`, async ({ page, siteHeader }) => {
+      const diagram = new WikiDiagram(page, "statLinesDiagram");
+      await diagram.goto();
+      await siteHeader.selectTeam(team.name);
+      await expect.poll(() => siteHeader.accent1()).toBe(team.accent1);
+      await diagram.buttons.first().press("Enter");
+
+      await assertNoAccessibilityViolations(page);
     });
   }
 });
