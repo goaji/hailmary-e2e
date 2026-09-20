@@ -1,4 +1,4 @@
-import type { Page } from "@playwright/test";
+import type { Locator, Page } from "@playwright/test";
 import ro from "@hailmary/shared/messages/ro.json";
 
 // The wiki has Romanian pages only.
@@ -11,12 +11,20 @@ export type WikiPageLink = { strand: WikiStrand; slug: string; path: string; tit
 const isWikiStrand = (value: string): value is WikiStrand => value in ro.wikiStrands;
 
 export class WikiHubPage {
+  readonly title;
+  readonly intro;
   readonly strandHeadings;
   readonly pageLinks;
 
   constructor(private readonly page: Page) {
+    this.title = page.getByRole("heading", { level: 1, name: ro.wikiHub.title, exact: true });
+    this.intro = page.getByText(ro.wikiHub.intro, { exact: true });
     this.strandHeadings = page.getByRole("main").getByRole("heading", { level: 2 });
     this.pageLinks = page.getByRole("main").getByRole("link");
+  }
+
+  strandDescription(strand: WikiStrand): Locator {
+    return this.page.getByText(ro.wikiStrands[strand].description, { exact: true });
   }
 
   async goto(): Promise<void> {
