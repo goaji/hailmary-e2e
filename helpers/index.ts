@@ -110,6 +110,27 @@ export async function headMetadata(page: Page): Promise<HeadMetadata> {
   return metadata;
 }
 
+// A <select>'s option values and optgroup labels aren't in the accessibility tree,
+// so they're read from the DOM rather than by role.
+export async function optionValues(select: Locator): Promise<string[]> {
+  const values = await select
+    .locator("option")
+    .evaluateAll((options) => options.map((option) => (option as HTMLOptionElement).value));
+  return values;
+}
+
+export async function optionLabels(select: Locator): Promise<string[]> {
+  const labels = await select.locator("option").allTextContents();
+  return labels;
+}
+
+export async function optionGroupLabels(select: Locator): Promise<string[]> {
+  const labels = await select
+    .locator("optgroup")
+    .evaluateAll((groups) => groups.map((group) => (group as HTMLOptGroupElement).label));
+  return labels;
+}
+
 export async function hrefs(links: Locator): Promise<string[]> {
   const values = await links.evaluateAll((els) => els.map((el) => el.getAttribute("href") ?? ""));
   return values;
