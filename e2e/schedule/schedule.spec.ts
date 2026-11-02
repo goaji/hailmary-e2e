@@ -103,10 +103,12 @@ test.describe("week selector and table structure", () => {
 
   test("kickoff times render in Bucharest local time under a foreign browser timezone", async ({
     browser,
+    draftModeCookie,
   }) => {
     // A US-based browser timezone is the case most likely to reveal a bug
     // that a Bucharest-timezone dev machine would never catch.
     const context = await browser.newContext({ timezoneId: "America/New_York" });
+    await context.addCookies([draftModeCookie]);
     const schedulePage = new SchedulePage(await context.newPage());
     await schedulePage.goto();
 

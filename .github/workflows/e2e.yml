@@ -68,7 +68,8 @@ jobs:
         run: |
           specs=$(git diff --name-only --diff-filter=AM ${{ github.event.before }} HEAD -- 'e2e/**/*.spec.ts')
           [ -z "$specs" ] && { echo "No spec files changed"; exit 0; }
-          npx playwright test $specs --repeat-each=5 --retries=0 --workers=2
+          # One worker: the repeats of a serial spec would otherwise share the score store at the same time.
+          npx playwright test $specs --repeat-each=5 --retries=0 --workers=1
 
       - name: Run the suite
         run: npx playwright test --workers=2 ${{ inputs.update_snapshots && '--update-snapshots=missing' || '' }}
