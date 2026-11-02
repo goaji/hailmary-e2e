@@ -1,4 +1,6 @@
 node_modules/
+# local app data copied here by mistake once; the e2e repo never reads it
+.data/
 
 # playwright (screenshot baselines under e2e/**/*-snapshots/ ARE tracked)
 /test-results/
