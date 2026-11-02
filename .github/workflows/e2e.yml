@@ -34,6 +34,10 @@ jobs:
         with:
           fetch-depth: 0 # burn-in compares against the previous push
 
+      # The container runs as root but the checkout belongs to the runner user, so git refuses it.
+      - name: Trust the checkout
+        run: git config --global --add safe.directory "$GITHUB_WORKSPACE"
+
       - uses: actions/checkout@v4
         with:
           repository: goaji/hailmary
