@@ -1,0 +1,87 @@
+name: E2E
+
+on:
+  push:
+    branches: [main]
+    paths-ignore: ["**.md"]
+  schedule:
+    - cron: "0 3 * * *" # nightly, 03:00 UTC
+  workflow_dispatch:
+    inputs:
+      update_snapshots:
+        description: Write missing Linux screenshot baselines and upload them
+        type: boolean
+        default: false
+
+concurrency:
+  group: e2e
+  cancel-in-progress: true
+
+jobs:
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    # Pinned image so screenshots match their Linux baselines. Bump with @playwright/test.
+    container: mcr.microsoft.com/playwright:v1.62.1-noble
+    env:
+      E2E_BASE_URL: http://localhost:3000
+      E2E_TEST_MODE: "true"
+    steps:
+      - name: Install git (npm fetches @hailmary/shared from GitHub)
+        run: command -v git || (apt-get update && apt-get install -y git)
+
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # burn-in compares against the previous push
+
+      - uses: actions/checkout@v4
+        with:
+          repository: goaji/hailmary
+          path: app
+
+      # App and tests share this machine, so throwaway secrets per run are enough.
+      - name: Generate run secrets
+        run: |
+          for name in E2E_TEST_SECRET CRON_SECRET; do
+            value=$(node -e "console.log(require('crypto').randomBytes(32).toString('hex'))")
+            echo "::add-mask::$value"
+            echo "$name=$value" >> "$GITHUB_ENV"
+          done
+
+      - name: Build and start the app
+        working-directory: app
+        run: |
+          npm ci
+          npm run build
+          nohup npm start > ../app.log 2>&1 &
+          node -e "const t=Date.now();(async function f(){try{await fetch('http://localhost:3000/api/version');process.exit(0)}catch{if(Date.now()-t>60000)process.exit(1);setTimeout(f,1000)}})()"
+
+      - run: npm ci
+
+      # New or edited specs must pass 5 times in a row; shared-code changes are left to the full run.
+      - name: Burn in changed specs
+        if: github.event_name == 'push' && github.event.before != '0000000000000000000000000000000000000000'
+        run: |
+          specs=$(git diff --name-only --diff-filter=AM ${{ github.event.before }} HEAD -- 'e2e/**/*.spec.ts')
+          [ -z "$specs" ] && { echo "No spec files changed"; exit 0; }
+          npx playwright test $specs --repeat-each=5 --retries=0 --workers=2
+
+      - name: Run the suite
+        run: npx playwright test --workers=2 ${{ inputs.update_snapshots && '--update-snapshots=missing' || '' }}
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ !cancelled() }}
+        with:
+          name: playwright-report
+          path: playwright-report/
+          retention-days: 14
+
+      - uses: actions/upload-artifact@v4
+        if: ${{ inputs.update_snapshots }}
+        with:
+          name: linux-snapshots
+          path: e2e/**/*-snapshots/*-linux.png
+
+      - name: App log
+        if: failure()
+        run: cat app.log
