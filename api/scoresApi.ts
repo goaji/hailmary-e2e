@@ -12,6 +12,17 @@ function authHeaders() {
 export async function seedScores(request: APIRequestContext, games: Game[]) {
   const response = await request.post(SEED_PATH, { headers: authHeaders(), data: { games } });
   expect(response.status(), "seed-scores POST").toBe(200);
+  await waitForScheduleRender(request, games);
+}
+
+// /program is cached and refreshes lazily, so the first visit after a seed can still get the old page.
+async function waitForScheduleRender(request: APIRequestContext, games: Game[]): Promise<void> {
+  await expect
+    .poll(async () => {
+      const html = await (await request.get("/ro/program")).text();
+      return games.every((game) => html.includes(game.id));
+    }, { message: "/ro/program serves the seeded games" })
+    .toBe(true);
 }
 
 export async function clearScores(request: APIRequestContext) {
