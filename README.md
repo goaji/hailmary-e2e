@@ -9,13 +9,13 @@ NFL site built with Next.js. Written in **Playwright + TypeScript**.
 
 ## What's covered
 
-277 tests across 23 spec files, plus a 4-test smoke suite:
+275 tests across 23 spec files, plus a 4-test smoke suite:
 
 - **Header & navigation**: desktop/mobile menu, breakpoint switch, active section, language switcher
 - **Homepage**: composition, heading order, dismissible banner that persists across reloads and browser restarts
 - **Schedule**: live, final, scheduled and postponed games, week navigation, timezone handling, degraded mode when live scores fail
-- **News**: index and article pages, category/team filters, grid/list view toggle, locale fallback
-- **Teams**: all 32 teams, division/conference structure, team-color theming
+- **News**: index and article pages, category/team filters, locale fallback
+- **Teams**: all 32 teams, team rail grouped by division, team-color theming
 - **Wiki**: page structure, table of contents, glossary, explainer panel (dialog + focus handling), interactive diagrams
 - **Site-wide**: SEO metadata, sitemap and robots.txt, localized 404 pages, footer
 
