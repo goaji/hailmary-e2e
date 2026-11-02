@@ -7,6 +7,8 @@ type ScheduleFixtures = {
   seedSchedule: (games: Game[]) => Promise<void>;
   /** Makes pages skip the ISR cache, for contexts a test creates itself. */
   draftModeCookie: DraftModeCookie;
+  /** On by default; turn off with test.use() to test the cached page visitors get. */
+  bypassPageCache: boolean;
 };
 
 export const test = base.extend<ScheduleFixtures>({
@@ -17,8 +19,11 @@ export const test = base.extend<ScheduleFixtures>({
   draftModeCookie: async ({ request, baseURL }, use) => {
     await use(await getDraftModeCookie(request, baseURL ?? ""));
   },
-  context: async ({ context, draftModeCookie }, use) => {
-    await context.addCookies([draftModeCookie]);
+  bypassPageCache: [true, { option: true }],
+  context: async ({ context, bypassPageCache, request, baseURL }, use) => {
+    if (bypassPageCache) {
+      await context.addCookies([await getDraftModeCookie(request, baseURL ?? "")]);
+    }
     await use(context);
   },
 });

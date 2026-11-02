@@ -407,6 +407,39 @@ test.describe("schedule visual regression", () => {
   });
 });
 
+// The other tests skip the ISR cache; this one checks the cached HTML picks up new scores.
+test.describe("cached schedule page", () => {
+  // No JS: the client fetches fresh scores on mount, which would hide what the cache serves.
+  test.use({ bypassPageCache: false, javaScriptEnabled: false });
+
+  // A sync asks for a refresh, so new scores show within seconds rather than at the 60s revalidate.
+  const REFRESH_TIMEOUT_MS = 15_000;
+
+  async function reloadUntilRowShows(page: Page, schedulePage: SchedulePage, game: Game): Promise<void> {
+    await expect
+      .poll(
+        async () => {
+          await page.reload();
+          return schedulePage.row(teamName(game.homeTeamId)).count();
+        },
+        { message: `the cached /program shows ${game.id}`, timeout: REFRESH_TIMEOUT_MS },
+      )
+      .toBe(1);
+  }
+
+  test("shows newly synced scores without waiting for the revalidate window", async ({ page, seedSchedule, schedulePage }) => {
+    test.setTimeout(2 * REFRESH_TIMEOUT_MS + 30_000);
+    await seedSchedule([FINAL_GAME_A]);
+    await schedulePage.goto();
+    // Showing A means the cache now holds a fresh page, so only a refresh can bring in B.
+    await reloadUntilRowShows(page, schedulePage, FINAL_GAME_A);
+
+    await seedSchedule([FINAL_GAME_A, FINAL_GAME_B]);
+
+    await reloadUntilRowShows(page, schedulePage, FINAL_GAME_B);
+  });
+});
+
 test.describe("cron route", () => {
   test("unauthenticated request is rejected with 401", async ({ request }) => {
     const response = await request.get("/api/cron/sync-scores");
