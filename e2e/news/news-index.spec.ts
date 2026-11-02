@@ -1,7 +1,7 @@
 import { getTeam } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import { articleCount } from "../../api/contentApi";
-import { ACCENT_EXTREME_TEAMS, ANCHOR_ARTICLE_SLUG, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport, reopenBrowser } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, ANCHOR_ARTICLE_SLUG, assertNoAccessibilityViolations, columnCount, hasHorizontalOverflow, itemsOutsideViewport } from "../../helpers";
 import { test, expect } from "../../fixtures/pageTest";
 import { NewsIndexPage } from "../../pageObjects/NewsIndexPage";
 
@@ -55,99 +55,6 @@ test.describe("news index", () => {
   });
 });
 
-test.describe("news index view toggle", () => {
-  test("toggles grid/list layout, persists across reload, and is keyboard-navigable", async ({
-    page,
-    newsIndexPage,
-  }) => {
-    const gridRadio = newsIndexPage.gridView;
-    const listRadio = newsIndexPage.listView;
-    const headings = newsIndexPage.cardTitles;
-
-    await test.step("defaults to grid view, cards laid out side by side", async () => {
-      await newsIndexPage.goto();
-      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
-      await expect(listRadio).toHaveAttribute("aria-checked", "false");
-
-      const first = await headings.nth(0).boundingBox();
-      const second = await headings.nth(1).boundingBox();
-      expect(Math.abs((first?.x ?? 0) - (second?.x ?? 0))).toBeGreaterThan(10);
-    });
-
-    await test.step("clicking 'Listă' re-flows cards into a single stacked column", async () => {
-      await newsIndexPage.switchToListView();
-      await expect(listRadio).toHaveAttribute("aria-checked", "true");
-      await expect(gridRadio).toHaveAttribute("aria-checked", "false");
-
-      const first = await headings.nth(0).boundingBox();
-      const second = await headings.nth(1).boundingBox();
-      expect(Math.abs((first?.x ?? 0) - (second?.x ?? 0))).toBeLessThan(5);
-      expect(second?.y ?? 0).toBeGreaterThan(first?.y ?? 0);
-    });
-
-    await test.step("reload restores the saved view", async () => {
-      // Retries until list shows, so a grid flash before hydration still passes.
-      // Tracked in goaji/hailmary#11, which adds a pre-hydration test.
-      await page.reload();
-      await expect(listRadio).toHaveAttribute("aria-checked", "true");
-    });
-
-    await test.step("ArrowLeft moves focus and selection together, back to grid", async () => {
-      await listRadio.focus();
-      await page.keyboard.press("ArrowLeft");
-
-      await expect(gridRadio).toBeFocused();
-      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
-      await expect(listRadio).toHaveAttribute("aria-checked", "false");
-    });
-
-    await test.step("Home and End jump to the first and last view", async () => {
-      await page.keyboard.press("End");
-      await expect(listRadio).toBeFocused();
-      await expect(listRadio).toHaveAttribute("aria-checked", "true");
-
-      await page.keyboard.press("Home");
-      await expect(gridRadio).toBeFocused();
-      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
-    });
-
-    await test.step("clicking 'Grilă' restores side-by-side cards and saves grid", async () => {
-      await newsIndexPage.switchToListView();
-      await expect.poll(() => newsIndexPage.storedView()).toBe("list");
-      await newsIndexPage.switchToGridView();
-      await expect(gridRadio).toHaveAttribute("aria-checked", "true");
-
-      const first = await headings.nth(0).boundingBox();
-      const second = await headings.nth(1).boundingBox();
-      expect(Math.abs((first?.x ?? 0) - (second?.x ?? 0))).toBeGreaterThan(10);
-
-      // Grid is also the pre-hydration default, so a reload can't prove it was saved.
-      await expect.poll(() => newsIndexPage.storedView()).toBe("grid");
-    });
-  });
-
-  test("the saved view survives closing and reopening the browser", async ({ page, newsIndexPage, browser }) => {
-    await newsIndexPage.goto();
-    await newsIndexPage.switchToListView();
-    await expect(newsIndexPage.listView).toHaveAttribute("aria-checked", "true");
-
-    const reopened = await reopenBrowser(browser, page);
-    const reopenedNewsIndex = new NewsIndexPage(reopened);
-    await reopenedNewsIndex.goto();
-    await expect(reopenedNewsIndex.listView).toHaveAttribute("aria-checked", "true");
-
-    await reopened.context().close();
-  });
-
-  test("axe clean on /stiri with list view active", async ({ page, newsIndexPage }) => {
-    await newsIndexPage.goto();
-    await newsIndexPage.switchToListView();
-    await expect(newsIndexPage.listView).toHaveAttribute("aria-checked", "true");
-
-    await assertNoAccessibilityViolations(page);
-  });
-});
-
 test.describe("news index accessibility across team accents", () => {
   for (const slug of ACCENT_EXTREME_TEAMS) {
     const team = getTeam(slug);
@@ -167,12 +74,12 @@ test.describe("news index accessibility across team accents", () => {
 test.describe("news index layout", () => {
   const LAYOUTS = [
     { width: 375, height: 900, gridColumns: 1 },
-    { width: 768, height: 900, gridColumns: 2 },
+    { width: 768, height: 900, gridColumns: 3 },
     { width: 1440, height: 900, gridColumns: 3 },
   ];
 
   for (const layout of LAYOUTS) {
-    test(`grid view reflows to ${layout.gridColumns} column(s) at ${layout.width}px`, async ({
+    test(`reflows to ${layout.gridColumns} column(s) at ${layout.width}px`, async ({
       page,
       newsIndexPage,
     }) => {
@@ -185,19 +92,6 @@ test.describe("news index layout", () => {
       expect(await hasHorizontalOverflow(page)).toBe(false);
       expect(await itemsOutsideViewport(cards)).toEqual([]);
       expect(await columnCount(cards)).toBe(Math.min(layout.gridColumns, await cards.count()));
-    });
-
-    test(`list view stacks one card per row at ${layout.width}px`, async ({ page, newsIndexPage }) => {
-      await page.setViewportSize({ width: layout.width, height: layout.height });
-      await newsIndexPage.goto();
-
-      await newsIndexPage.switchToListView();
-      await expect(newsIndexPage.listView).toHaveAttribute("aria-checked", "true");
-
-      const cards = newsIndexPage.cards;
-      expect(await hasHorizontalOverflow(page)).toBe(false);
-      expect(await itemsOutsideViewport(cards)).toEqual([]);
-      expect(await columnCount(cards)).toBe(1);
     });
   }
 });

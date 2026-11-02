@@ -15,7 +15,7 @@ import { HomePage } from "../../pageObjects/HomePage";
 const VIEWPORTS = viewportsWithHeights([1200, 1400, 1400]);
 
 // The app's GRID_SIZE in app/[locale]/page.tsx.
-const GRID_SIZE = 4;
+const GRID_SIZE = 6;
 
 test.describe("homepage composition", () => {
   test("featured article does not appear in the news grid", async ({ homePage }) => {
@@ -93,7 +93,7 @@ test.describe("homepage composition", () => {
     await reopened.context().close();
   });
 
-  test("the news grid shows up to four articles besides the featured one", async ({ homePage, request }) => {
+  test("the news grid shows up to six articles besides the featured one", async ({ homePage, request }) => {
     await homePage.goto();
 
     const expected = Math.min(GRID_SIZE, (await articleCount(request, "ro")) - 1);
@@ -181,8 +181,8 @@ test.describe("prefers-reduced-motion", () => {
 test.describe("homepage layout", () => {
   const LAYOUTS = [
     { width: 375, height: 900, newsColumns: 1, sidebarBesideGrid: false, heroSideBySide: false, cardImagesVisible: false },
-    { width: 768, height: 900, newsColumns: 2, sidebarBesideGrid: true, heroSideBySide: true, cardImagesVisible: true },
-    { width: 1440, height: 900, newsColumns: 2, sidebarBesideGrid: true, heroSideBySide: true, cardImagesVisible: true },
+    { width: 768, height: 900, newsColumns: 3, sidebarBesideGrid: false, heroSideBySide: true, cardImagesVisible: true },
+    { width: 1440, height: 900, newsColumns: 3, sidebarBesideGrid: true, heroSideBySide: true, cardImagesVisible: true },
   ];
 
   for (const layout of LAYOUTS) {
@@ -205,7 +205,8 @@ test.describe("homepage layout", () => {
 
       const gridBottom = gridBox.y + gridBox.height;
       if (layout.sidebarBesideGrid) {
-        expect(sidebarBox.x).toBeGreaterThanOrEqual(gridBox.x + gridBox.width);
+        // The sidebar sits to the left of the grid from the panel breakpoint up.
+        expect(sidebarBox.x + sidebarBox.width).toBeLessThanOrEqual(gridBox.x);
         expect(sidebarBox.y).toBeLessThan(gridBottom);
       } else {
         expect(sidebarBox.y).toBeGreaterThanOrEqual(gridBottom);

@@ -1,37 +1,58 @@
-import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam } from "@hailmary/shared";
+import { CONFERENCES, DIVISIONS, PICKER_TEAMS, TEAMS, getTeam, getTeamsByDivision } from "@hailmary/shared";
 import ro from "@hailmary/shared/messages/ro.json";
 import { test, expect } from "../../fixtures/pageTest";
-import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations } from "../../helpers";
+import { ACCENT_EXTREME_TEAMS, assertNoAccessibilityViolations, hasHorizontalOverflow } from "../../helpers";
 
 test.describe("teams index", () => {
-  test("renders all 32 teams, reachable by role and name", async ({ page }) => {
-    await page.goto("/ro/echipe");
+  test("has one h1 and a link to the conferences explainer", async ({ teamsPage }) => {
+    await teamsPage.goto();
+
+    await expect(teamsPage.title).toBeVisible();
+    await expect(teamsPage.title).toHaveCount(1);
+    await expect(teamsPage.learnMoreLink).toHaveAttribute("href", "/ro/wiki/the-league/conferinte-si-divizii");
+  });
+
+  test("the rail lists all 32 teams, reachable by role and name", async ({ teamsPage }) => {
+    await teamsPage.goto();
 
     for (const team of TEAMS) {
-      await expect(page.getByRole("link", { name: team.name, exact: true })).toBeVisible();
+      await expect(teamsPage.teamLink(team.name)).toBeVisible();
     }
   });
 
-  test("8 division groups (h3) nested under 2 conference headings (h2), in order", async ({
-    page,
-  }) => {
-    await page.goto("/ro/echipe");
+  test("the rail groups teams into 8 division lists, in conference then division order", async ({ teamsPage }) => {
+    await teamsPage.goto();
 
     for (const conference of CONFERENCES) {
-      // exact: a division region is named "AFC East" (conference + division),
-      // which would otherwise also match { name: "AFC" }.
-      const conferenceRegion = page.getByRole("region", { name: conference, exact: true });
-      await expect(conferenceRegion.getByRole("heading", { level: 2 })).toHaveText(conference);
-
-      const divisionHeadings = await conferenceRegion.getByRole("heading", { level: 3 }).allTextContents();
-      expect(divisionHeadings).toEqual([...DIVISIONS]);
-
       for (const division of DIVISIONS) {
-        await expect(
-          conferenceRegion.getByRole("region", { name: `${conference} ${division}`, exact: true }),
-        ).toBeVisible();
+        const expected = getTeamsByDivision(conference, division).map((team) => team.name);
+        await expect(teamsPage.divisionList(`${conference} ${division}`).getByRole("link")).toHaveText(expected);
       }
     }
+  });
+
+  test("the current team is marked in the rail and follows navigation", async ({ page, teamsPage }) => {
+    const from = getTeam("kc");
+    const to = getTeam("phi");
+    await teamsPage.goto(from.slug);
+    await expect(teamsPage.teamLink(from.name)).toHaveAttribute("aria-current", "page");
+
+    await teamsPage.teamLink(to.name).click();
+
+    await expect(page).toHaveURL(`/ro/echipe/${to.slug}`);
+    await expect(teamsPage.teamLink(to.name)).toHaveAttribute("aria-current", "page");
+    await expect(teamsPage.teamLink(from.name)).not.toHaveAttribute("aria-current");
+  });
+
+  test("at 375px the rail sits in a closed disclosure that opens to every team", async ({ page, teamsPage }) => {
+    await page.setViewportSize({ width: 375, height: 900 });
+    await teamsPage.goto();
+    await expect(teamsPage.rail).toBeHidden();
+
+    await teamsPage.mobileRailToggle.click();
+
+    await expect(teamsPage.railLinks).toHaveCount(TEAMS.length);
+    expect(await hasHorizontalOverflow(page)).toBe(false);
   });
 });
 

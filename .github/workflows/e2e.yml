@@ -81,7 +81,7 @@ jobs:
           retention-days: 14
 
       - uses: actions/upload-artifact@v4
-        if: ${{ inputs.update_snapshots }}
+        if: ${{ !cancelled() && inputs.update_snapshots }}
         with:
           name: linux-snapshots
           path: e2e/**/*-snapshots/*-linux.png
