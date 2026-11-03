@@ -1,13 +1,12 @@
 import { defineConfig, devices } from "@playwright/test";
 
-// No app source lives in this repo, so there's no local dev server to spawn
-// (unlike playwright.smoke.config.ts, this suite has no production fallback
-// either — it's a pre-merge gate against a specific deployed preview).
+// The app lives in another repo, so it's started separately (next dev, or the CI job).
+// No production fallback: this suite seeds data.
 const baseURL = process.env.E2E_BASE_URL;
 
 if (!baseURL) {
   throw new Error(
-    "E2E_BASE_URL must point at a deployed target (e.g. a Vercel PR preview) — this suite has no local app to run against."
+    "E2E_BASE_URL must point at a running app (e.g. http://localhost:3000) — this suite seeds data, so it has no production fallback."
   );
 }
 

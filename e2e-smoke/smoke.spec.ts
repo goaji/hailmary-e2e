@@ -1,8 +1,7 @@
 import { test, expect } from "@playwright/test";
 
-// Post-deploy sanity check against the live Hostinger deploy — not the PR
-// suite. Run with: npm run test:smoke (optionally SMOKE_BASE_URL=... to
-// point at a different environment, e.g. a preview deploy).
+// Post-deploy sanity check against production, separate from the full suite.
+// Run with: npm run test:smoke (SMOKE_BASE_URL=... for another target).
 
 test.describe("smoke", () => {
   test("homepage renders", async ({ page }) => {

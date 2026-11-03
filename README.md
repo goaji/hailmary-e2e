@@ -58,9 +58,17 @@ checks shape — that a filter narrows without inventing, that categories
 partition the index exactly once — which holds no matter what gets published.
 
 **Two configs.** `playwright.config.ts` runs the full suite and requires an
-explicit `E2E_BASE_URL`; it seeds data, so it points at a local app or a
-deployment that exists to be tested against. `playwright.smoke.config.ts`
-runs four read-only checks against production after a deploy.
+explicit `E2E_BASE_URL`. It seeds data, so it only ever points at a local app.
+`playwright.smoke.config.ts` runs four read-only checks against production.
+The hailmary repo triggers them after each deploy, once `/api/version` reports
+the new commit.
+
+**CI on every push, and nightly.** `.github/workflows/e2e.yml` builds the app
+from the hailmary repo and runs the full suite against it every night, and on
+every push to this repo's `main`. New or changed specs must first pass five times in a
+row, and a test that only passes on retry still fails the run: retries exist
+to capture a trace, not to turn a run green. Screenshots are compared in the
+official Playwright Docker image, against Linux baselines.
 
 ## Project structure
 
@@ -87,7 +95,7 @@ npm run test:e2e
 # Smoke suite, against production by default
 npm run test:smoke
 # or a specific target:
-SMOKE_BASE_URL=https://hailmary.lucianstana.com npm run test:smoke
+SMOKE_BASE_URL=http://localhost:3000 npm run test:smoke
 ```
 
 `schedule.spec.ts` and `news-index.spec.ts` need `E2E_TEST_SECRET` to seed and
@@ -95,31 +103,26 @@ read fixtures via the app's `/api/test/*` routes; the cron route tests need
 `CRON_SECRET`. Tests skip themselves when a secret is unset, except the
 fixture-dependent ones, which fail outright.
 
-The target needs `E2E_TEST_MODE=true` alongside `E2E_TEST_SECRET`, or the test
-routes reject every request. For a deployed target both go in the host's
-control panel, unquoted — `.env.local` is gitignored and never ships, and a
-value stored with its surrounding quotes fails exactly like a wrong secret.
+The app needs `E2E_TEST_MODE=true` alongside `E2E_TEST_SECRET`, or the test
+routes reject every request. Locally they go in the app's `.env.local`; CI
+sets both itself.
 
 ### Targets
 
 | Target | Suite |
 | --- | --- |
-| `http://localhost:3000` | Full suite — where it runs today |
-| `https://hailmary.lucianstana.com` | Smoke suite (see below) |
+| `http://localhost:3000` | Full suite — locally and in CI |
 | `https://hailmary.ro` | Smoke suite only — production |
 
-The `.com` host exists to be tested against, but a full run trips its bot
-challenge partway through: requests begin returning 403 with a "Checking your
-browser" interstitial, and Playwright reads *that* page instead of the app.
-The result is dozens of failures that look real — empty grids, missing
-headings, empty selects — and aren't. **A 403 from that host always means the
-edge; the app itself never returns one.**
+Production sits behind Hostinger's bot challenge. A burst of requests gets a
+403 "Checking your browser" page, and Playwright reads *that* instead of the
+app, so failures look real and aren't. That's why the full suite never
+targets it and the smoke suite runs with one worker. **A 403 from that host
+always means the edge; the app itself never returns one.**
 
 ## Roadmap
 
-- **CI**: run the smoke suite on a schedule (nightly, as monitoring), and the full suite on every deployment
-- **Full suite against the test deployment**: blocked on the bot challenge above — needs the runner's IP allowlisted, or the challenge disabled for that hostname
-- **Linux snapshot baselines**: current baselines are macOS-only. Generate them in the official Playwright Docker image so they match CI
+- **Scheduled smoke runs**: it runs after each deploy today; add a schedule so it also works as monitoring
 - **Cross-browser**: add Firefox and WebKit projects, starting with the smoke suite
 - **Shared-package drift**: nothing catches it automatically yet when the app and `@hailmary/shared` get out of sync
 
